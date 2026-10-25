@@ -182,10 +182,16 @@ dialog::backdrop{background:var(--scrim)}
 .kb-star{flex:none;width:44px;height:44px;border:none;background:transparent;color:var(--ink-faint);font-size:1.45rem;cursor:pointer;border-radius:10px}
 .kb-star[aria-pressed="true"]{color:var(--live)}
 .kb-empty{padding:24px 16px;color:var(--ink-dim)}
-.kb-link{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border-radius:12px;background:var(--deck-2);border:1.5px solid var(--rule)}
+.kb-link{display:flex;flex-direction:column;gap:10px;padding:6px 6px 6px 12px;border-radius:12px;background:var(--deck-2);border:1.5px solid var(--rule)}
 .kb-link.on{border-color:var(--loop)}
-.kb-link .btn{min-height:42px;padding:0 14px}
-.kb-link-status{flex:1 1 160px;font-size:.88rem;color:var(--ink-dim);min-width:0}
+.kb-link .btn{min-height:40px;padding:0 13px;font-size:.92rem}
+.kb-link-line{display:flex;align-items:center;gap:10px;min-width:0}
+.kb-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--ink-faint)}
+.kb-link.on .kb-dot{background:var(--loop);box-shadow:0 0 8px var(--loop)}
+.kb-link-more{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:4px 6px 6px 0;border-top:1px solid var(--rule);padding-top:10px}
+.kb-more-btn[aria-expanded="true"]{background:var(--ink);color:var(--house);border-color:var(--ink)}
+.kb-link-status{flex:1 1 auto;font-size:.88rem;color:var(--ink-dim);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-pill{flex:none;padding:3px 8px;border-radius:6px;background:rgba(95,196,216,.16);color:var(--loop);font-size:.78rem;font-weight:700}
 .kb-link.on .kb-link-status{color:var(--ink)}
 .kb-link.on .kb-link-status b{color:var(--loop)}
 .kb-thru{flex:1 1 100%;font-size:.95rem}
@@ -197,6 +203,7 @@ dialog::backdrop{background:var(--scrim)}
 .kb-item.on{background:rgba(95,196,216,.12);box-shadow:inset 4px 0 0 var(--loop)}
 .kb-item.on .kb-num{color:var(--loop)}
 .kb-item.na .kb-num{color:var(--ink-faint)}
+.kb-linked .kb-foot{display:none}
 .kb-foot{margin:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule);font-size:.82rem;color:var(--ink-dim)}
 
 @media (max-width:520px){
@@ -241,13 +248,20 @@ dialog::backdrop{background:var(--scrim)}
       <button class="btn" id="kb-close" type="button">Close</button>
     </div>
     <div class="kb-link" id="kb-link" hidden>
-      <button class="btn" id="kb-connect" type="button">Connect keyboard</button>
-      <span class="kb-link-status" id="kb-link-status">Plug the keyboard in by USB, then connect to switch voices from here.</span>
+      <div class="kb-link-line">
+        <span class="kb-dot" aria-hidden="true"></span>
+        <span class="kb-link-status" id="kb-link-status">Plug the keyboard in by USB, then connect.</span>
+        <span class="kb-pill" id="kb-pill" hidden></span>
+        <button class="btn" id="kb-connect" type="button">Connect</button>
+        <button class="btn kb-more-btn" id="kb-more-btn" type="button" aria-expanded="false" aria-controls="kb-link-more" hidden>Settings</button>
+      </div>
+      <div class="kb-link-more" id="kb-link-more" hidden>
       <select class="kb-select" id="kb-out" aria-label="MIDI device" hidden></select>
       <select class="kb-select" id="kb-ch" aria-label="MIDI channel" hidden></select>
       <button class="btn btn-quiet" id="kb-test" type="button" hidden>Test note</button>
       <label class="switch kb-thru" for="kb-thru" hidden><input type="checkbox" id="kb-thru">Keys play the voice chosen here</label>
       <p class="kb-link-help" id="kb-thru-help" hidden>Your keys now play through this app, so the voice you tap here is the one you hear. If every note sounds twice, set <b>Local Control</b> to <b>Off</b> in the keyboard’s Function menu. Turn this switch off before unplugging, or the keys go quiet until Local Control is back on.</p>
+      </div>
     </div>
     <div class="kb-search">
       <input type="search" id="kb-q" placeholder="Find a sound, e.g. whistle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Search the keyboard's voices">
@@ -1234,6 +1248,7 @@ function kbGet(k) { try { return localStorage.getItem(k); } catch { return null;
 function kbSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
 mid.ch = Math.min(15, Math.max(0, (parseInt(kbGet('kb-ch'), 10) || 1) - 1));
 mid.thru = kbGet('kb-thru') === 'on';
+mid.more = false; // settings start folded away so the voice list gets the room
 function midiStatus(html) { $('#kb-link-status').innerHTML = html; }
 function midiRefresh() {
   const outs = mid.access ? [...mid.access.outputs.values()].filter(o => o.state !== 'disconnected') : [];
@@ -1246,7 +1261,11 @@ function midiRefresh() {
   sel.hidden = outs.length < 2;
   const on = !!mid.out;
   $('#kb-link').classList.toggle('on', on);
+  $('#kb-panel').classList.toggle('kb-linked', on);
   $('#kb-connect').hidden = on;
+  $('#kb-more-btn').hidden = !on;
+  $('#kb-more-btn').setAttribute('aria-expanded', String(on && mid.more));
+  $('#kb-link-more').hidden = !(on && mid.more);
   $('#kb-ch').hidden = $('#kb-test').hidden = !on;
   $('.kb-thru').hidden = !on;
   $('#kb-thru').checked = mid.thru;
@@ -1254,10 +1273,11 @@ function midiRefresh() {
   midiWireInputs();
   $('#kb-list').classList.toggle('kb-sendable', on);
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  if (on) midiStatus(mid.thru
-    ? `Linked to <b>${esc(mid.out.name || 'keyboard')}</b>. Tap a voice, then play.`
-    : `Linked to <b>${esc(mid.out.name || 'keyboard')}</b>. Tap a voice to switch the keyboard to it.`);
-  else if (mid.access) midiStatus('No keyboard found. Check the cable goes into the keyboard’s USB TO HOST port and the keyboard is on.');
+  $('#kb-pill').hidden = !on;
+  $('#kb-pill').textContent = `Ch ${mid.ch + 1}${mid.thru ? ' · keys through' : ''}`;
+  if (on) midiStatus(`<b>${esc(mid.out.name || 'Keyboard')}</b>`);
+  else if (mid.access) midiStatus('No keyboard found. Check the USB TO HOST cable and that the keyboard is on.');
+  $('#kb-link-status').title = $('#kb-link-status').textContent;
   if (kb.data) kbRender();
 }
 async function midiConnect() {
@@ -1336,8 +1356,10 @@ if (mid.supported) {
     if (mid.thru && mid.out) { try { mid.out.send([0xB0 | mid.ch, 123, 0]); } catch {} }
     mid.ch = Number(e.target.value); kbSet('kb-ch', String(mid.ch + 1));
     if (mid.thru) midiLocal(false);
+    midiRefresh();
   });
   $('#kb-thru').addEventListener('change', e => midiThru(e.target.checked));
+  $('#kb-more-btn').addEventListener('click', () => { mid.more = !mid.more; midiRefresh(); });
   // Leaving the app: give the keys back to the keyboard.
   addEventListener('pagehide', () => { if (mid.thru) midiLocal(true); });
   addEventListener('pageshow', e => { if (e.persisted && mid.thru) midiLocal(false); });
