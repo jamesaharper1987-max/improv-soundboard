@@ -1,6 +1,6 @@
 {
  "app": "improv-soundboard",
- "version": "2026-10-24a",
+ "version": "2026-10-25a",
  "sounds": [
   {
    "id": "b-rain",
@@ -165,8 +165,9 @@
    "loop": true,
    "volume": 0.6,
    "links": [],
-   "duration": 41.52,
-   "bytes": 830400
+   "duration": 41.57,
+   "bytes": 730637,
+   "rev": 2
   },
   {
    "id": "b-farm-ambience",

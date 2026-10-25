@@ -499,21 +499,38 @@ const store = {
   },
   all() { return this.tx('sounds', 'readonly', s => s.getAll()).then(r => r || []); },
   put(rec) { return this.tx('sounds', 'readwrite', s => s.put(rec)); },
+  get(id) { return this.tx('sounds', 'readonly', s => s.get(id)); },
   del(id) { return this.tx('sounds', 'readwrite', s => s.delete(id)); },
   clear() { return this.tx('sounds', 'readwrite', s => s.clear()); },
   getMeta(k) { return this.tx('meta', 'readonly', s => s.get(k)); },
   setMeta(k, v) { return this.tx('meta', 'readwrite', s => s.put(v, k)); },
 };
 const record = s => ({ id: s.id, name: s.name, order: s.order, volume: s.volume, loop: s.loop, links: s.links, demo: s.demo || null, audio: s.audio || null, image: s.image || null,
-  duration: s.duration || 0, category: s.category || null, bundleFile: s.bundleFile || null, bundleImage: s.bundleImage || null });
+  duration: s.duration || 0, category: s.category || null, bundleFile: s.bundleFile || null, bundleImage: s.bundleImage || null, bundleRev: s.bundleRev || null });
 const fromRecord = (r, i) => ({
   id: String(r.id), name: r.name || 'Sound', order: Number.isFinite(r.order) ? r.order : i,
   volume: typeof r.volume === 'number' ? r.volume : .8, loop: !!r.loop, links: Array.isArray(r.links) ? r.links.map(String) : [],
   demo: r.demo || null, audio: r.audio || null, image: r.image || null, duration: +r.duration || 0,
-  category: r.category || null, bundleFile: r.bundleFile || null, bundleImage: r.bundleImage || null,
+  category: r.category || null, bundleFile: r.bundleFile || null, bundleImage: r.bundleImage || null, bundleRev: r.bundleRev || null,
 });
 async function persist(s) {
+  savePrefs(s);
   try { await store.put(record(s)); } catch { toast("Couldn't save that change on this device."); }
+}
+// Volume and position are saved on their own, without rewriting the sound's audio. Rewriting a big
+// audio file while it is playing failed on the iPad ("Couldn't save…") and broke the playing sound.
+let prefs = {};
+async function savePrefs(s) {
+  prefs[s.id] = { volume: s.volume, order: s.order };
+  try { await store.setMeta('prefs', prefs); } catch { toast("Couldn't save that change on this device."); }
+}
+async function loadPrefs() {
+  try { prefs = (await store.getMeta('prefs')) || {}; } catch { prefs = {}; }
+  for (const s of sounds) {
+    const p = prefs[s.id]; if (!p) continue;
+    if (typeof p.volume === 'number') s.volume = p.volume;
+    if (Number.isFinite(p.order)) s.order = p.order;
+  }
 }
 
 /* ================= example sounds ================= */
@@ -744,7 +761,14 @@ function streamCopy(v, s, full) {
     dropCopy(v, copy);
     if (v.copies.length || playing.get(v.id) !== v || v.stopped) return;
     // One quiet retry on a fresh element before calling the sound broken (iPad sometimes refuses a play).
-    if (!v.retried) { v.retried = true; setTimeout(() => { if (playing.get(v.id) === v && !v.stopped && !v.copies.length) streamCopy(v, s, true); }, 250); return; }
+    if (!v.retried) {
+      v.retried = true;
+      setTimeout(async () => {
+        try { const rec = await store.get(v.id); if (rec && rec.audio) s.audio = rec.audio; } catch {} // a fresh handle on the stored file
+        if (playing.get(v.id) === v && !v.stopped && !v.copies.length) streamCopy(v, s, true);
+      }, 250);
+      return;
+    }
     playing.delete(v.id); disconnectVoice(v); failed.add(v.id); refreshPlaying(); renderBoard();
     toast(`“${s.name}” didn't start. Tap it to try again.`);
   };
@@ -899,7 +923,7 @@ function tileEl(s) {
   range.addEventListener('input', () => {
     s.volume = range.value / 100; out.textContent = range.value; setFill(range);
     const v = playing.get(s.id); if (v && ctx) v.out.gain.setTargetAtTime(s.volume, ctx.currentTime, .03);
-    clearTimeout(s._saveT); s._saveT = setTimeout(() => persist(s), 400);
+    clearTimeout(s._saveT); s._saveT = setTimeout(() => savePrefs(s), 400);
   });
   const live = playing.has(s.id), fadingOnly = !live && isFading(s.id);
   const fadeBtn = h('button', { class: 'fade', type: 'button', 'aria-label': `Fade out ${s.name}`, disabled: fadingOnly, onclick: () => fadeSound(s.id) });
@@ -1133,6 +1157,7 @@ $('#ed-delete').addEventListener('click', async () => {
   for (const o of sounds) if (o.links.includes(s.id)) { o.links = o.links.filter(x => x !== s.id); persist(o); }
   const u = urls.get(s.id); if (u) { URL.revokeObjectURL(u.url); urls.delete(s.id); }
   try { await store.del(s.id); } catch {}
+  if (prefs[s.id]) { delete prefs[s.id]; try { await store.setMeta('prefs', prefs); } catch {} }
   if (s.id.startsWith('b-')) { // keep deleted folder sounds from coming back on the next load
     try { const gone = (await store.getMeta('removedBundle')) || []; if (!gone.includes(s.id)) await store.setMeta('removedBundle', [...gone, s.id]); } catch {}
   }
@@ -1144,7 +1169,7 @@ async function move(dir) {
   const list = sorted(), i = list.findIndex(x => x.id === ed.id), j = i + dir;
   if (i < 0 || j < 0 || j >= list.length) return;
   list.splice(j, 0, list.splice(i, 1)[0]);
-  list.forEach((s, k) => { if (s.order !== k) { s.order = k; persist(s); } });
+  list.forEach((s, k) => { if (s.order !== k) { s.order = k; savePrefs(s); } });
   renderBoard(); edPosButtons();
 }
 $('#ed-earlier').addEventListener('click', () => move(-1));
@@ -1813,8 +1838,23 @@ async function importBundle(m) {
   const have = new Set(sounds.map(s => s.id));
   const todo = m.sounds.filter(x => !have.has(x.id) && !gone.includes(x.id));
   const demos = sounds.filter(s => s.demo);
-  if (!todo.length && !demos.length) return;
+  // A folder sound whose file was replaced on GitHub (its "rev" went up) gets the new audio,
+  // unless the audio was changed on this device. Name, picture, loop and volume set here are kept.
+  const updates = m.sounds.filter(x => { const s = byId(x.id); return s && s.bundleFile === x.file && (x.rev || 1) > (s.bundleRev || 1); });
+  if (!todo.length && !demos.length && !updates.length) return;
   importing = true; go.disabled = true;
+  for (const [n, r] of updates.entries()) {
+    status.textContent = `Updating sounds: ${n + 1} of ${updates.length} (${r.name})`;
+    try {
+      const s = byId(r.id);
+      s.audio = await fetchBundleFile(r.file, 'audio/mpeg');
+      s.duration = +r.duration || s.duration; s.bundleRev = r.rev || 1;
+      buffers.delete(s.id); failed.delete(s.id);
+      const u = urls.get(s.id); if (u) { URL.revokeObjectURL(u.url); urls.delete(s.id); }
+      await persist(s);
+    } catch {}
+  }
+  if (updates.length && !todo.length && !demos.length) { importing = false; go.disabled = false; renderBoard(); toast(`Updated ${updates.map(r => r.name).join(', ')}.`); return; }
   for (const s of demos) { sounds = sounds.filter(x => x !== s); try { await store.del(s.id); } catch {} }
   const base = sounds.length ? Math.max(...sounds.map(s => s.order)) + 1 : 0;
   let failedCount = 0;
@@ -1825,7 +1865,7 @@ async function importBundle(m) {
         fetchBundleFile(r.file, 'audio/mpeg'),
         r.image ? fetchBundleFile(r.image, 'image/svg+xml').catch(() => null) : null,
       ]);
-      const s = fromRecord({ ...r, order: base + m.sounds.indexOf(r), audio, image, bundleFile: r.file, bundleImage: r.image || null });
+      const s = fromRecord({ ...r, order: base + m.sounds.indexOf(r), audio, image, bundleFile: r.file, bundleImage: r.image || null, bundleRev: r.rev || 1 });
       sounds.push(s); await persist(s);
       renderBoard();
     } catch { failedCount++; }
@@ -1844,6 +1884,7 @@ try { if (document.querySelector('link[rel="manifest"]') && 'serviceWorker' in n
   let recs = [];
   try { recs = await store.all(); } catch {}
   sounds = recs.map(fromRecord);
+  await loadPrefs();
   $('#storage-warn').hidden = store.ok;
   renderBoard();
   manifest = await loadManifest();
