@@ -33,6 +33,7 @@ Last updated: 25 October 2026.
 - Each tile has its own volume slider, which works while the sound plays and is remembered.
 - Any number of sounds can play at once (layering).
 - **Loop with crossfade**: a looped sound starts a fresh copy 10 seconds before the end and crossfades the two, so clips that start with silence and build up (the vacuum cleaner) still sound continuous. Clips shorter than about 22 seconds get a shorter crossfade.
+- **Keyboard voices lookup**: the **Keyboard** button (top bar, left of Edit board) opens a side panel listing all 820 voices of James's Yamaha PSR-EW425. Type a word ("whistle", "door", "siren") or a number and it shows the voice number to dial on the keyboard, its group and how far into the group it sits. Filters: All, Sound effects (the 60 or so noise and effect voices), ★ Starred (tap ☆ on any voice to keep it there; stored on that iPad only), and one per voice group. Drum-kit keys can be listed too: "whistle" also shows the samba whistles in Standard Kit 1 (voice 296, keys B4 and C5). The panel sits beside the board, so tiles and Stop all keep working while it is open. It only looks numbers up; it does not change the keyboard's voice.
 - Works offline once installed, through a service worker.
 - Pictures, names, loops and volumes can all be changed in Edit board.
 
@@ -46,6 +47,7 @@ Last updated: 25 October 2026.
 - Tile pictures are simple drawn icons in one consistent style, not photos from the web.
 - `Selection.mp3` was left out because it looked like a duplicate export of `Cicada.mp3`.
 - `Car purr.mp3` is shown as **Cat purr** (its original file was a cat purring). `Incadescent light` was corrected to **Incandescent light**. Long names were shortened (e.g. "Busy nightclub" became "Nightclub").
+- **Keyboard lookup is read-only (25 Oct 2026)**: James wanted to type a sound name and find the Yamaha voice. Safari on iPad has no Web MIDI, so the web app cannot switch the keyboard's voice; it shows the number to dial instead (the "poor man's version"). Switching the voice automatically over USB needs a native iPad app (Xcode, Apple developer account). The voice list file is kept so that app can reuse it.
 - Ambiences loop, short clips play once, Microwave/Printer/Security alarm/Cat purr loop. Starting volume: 60 for loops, 85 for one-shots.
 
 ## The 50 sounds
@@ -125,7 +127,7 @@ Claude cannot push to GitHub from a chat, because James's GitHub account is not 
 - **New sounds** added to `board/board.json` (new `id`) are downloaded automatically the next time the app opens online.
 - **Changed settings for an existing sound** in `board.json` (name, loop, volume, picture) do **not** overwrite what is already on the iPad, so James's own edits are never lost. For an existing sound, change it in Edit board on the iPad, or delete the tile and reload the app online so the new version is re-added. (A "sync from GitHub" button could be built if this becomes annoying.)
 - **A deleted sound** stays deleted on that iPad even if it is still in `board.json`.
-- **App code changes** (`index.html`, `sw.js`) reach the iPad on the second launch after the push, because the offline cache serves the old version first and refreshes in the background. Bump `CACHE` in `sw.js` on every code change so the cache refreshes. Current value: `soundboard-2026-10-25b`.
+- **App code changes** (`index.html`, `sw.js`) reach the iPad on the second launch after the push, because the offline cache serves the old version first and refreshes in the background. Bump `CACHE` in `sw.js` on every code change so the cache refreshes. Current value: `soundboard-2026-10-25c`.
 
 ## Repo layout
 
@@ -137,6 +139,7 @@ icons/                app icon (SVG source + 180/192/512 PNGs)
 board/board.json      the folder board: one entry per sound
 board/audio/*.mp3     the 50 sounds (about 138 MB)
 board/img/*.svg       the tile pictures
+keyboard/psr-ew425-voices.json   the Yamaha PSR-EW425 voice list for the Keyboard panel
 .nojekyll             tells GitHub Pages to serve files as they are
 ```
 
@@ -168,6 +171,7 @@ board/img/*.svg       the tile pictures
 - **First load**: the app fetches `board/board.json` and imports any sound whose id is not yet stored and not in `removedBundle`, with progress shown on the GO screen.
 - **Backup**: a JSON file. Sounds that came from the folder board are saved as references (`bundleFile`, `bundleImage`), so the backup stays small; restoring re-downloads them.
 - **Tile pictures**: 160×120 SVGs, a vertical gradient in the section colour, a faint circle, and a line icon at 2.4× scale (stroke 1.9, colour #f4efe4) centred at (80, 50). Icons are from Lucide (`lucide-static@0.460.0`, ISC licence); vacuum, lawn mower, sprinkler, bowling, prison bars, bee and the purr/crash marks were drawn by hand in the same style. Section colours (top → bottom of the gradient): weather #335f8c→#1f3c5c, nature #46703e→#2a4527, city #94562a→#5c3317, places #62458a→#3c2a57, home #2f6b6c→#1b4243, bells #8a6a22→#57420f, stings #86343f→#521d25.
+- **Keyboard voice list** (`keyboard/psr-ew425-voices.json`): `voices` is an array of `[number, group, name, MSB, LSB, program]` for voices 1–820, transcribed from Yamaha's *PSR-E473/PSR-EW425 Data List* (Voice List). Program numbers are 1–128 as Yamaha prints them; send one less over MIDI. `null` MIDI values are panel-only voices (layers and arpeggios) that can't be called up over MIDI. `kitSounds` lists drum-kit keys worth finding by name (`kit` = voice number of the kit, `note` = MIDI note; the panel shows Yamaha note names, where middle C = C3). The file is in the service worker's offline list. The panel code is the "keyboard voice lookup" block in `index.html`; starred voices are saved in `localStorage` key `kb-favs`. The list was read out of the PDF by machine, so if a number ever looks wrong on the keyboard, check it against the Data List and fix it in the JSON.
 - **Design**: dark stage look. Display font Big Shoulders Display, body font Atkinson Hyperlegible (Google Fonts, cached offline). Amber (#ffb04a) marks a playing one-shot, cyan (#5fc4d8) a playing loop.
 
 ## Still to test on the iPad
@@ -180,6 +184,8 @@ board/img/*.svg       the tile pictures
 ## Ideas and later features (from the spec)
 
 - Background playback when the screen locks or another app is open. Web apps on iPad pause in the background; this likely needs a native app (€99/year Apple developer fee).
+- **Native iPad app for the Yamaha**: connect the PSR-EW425 by USB (its USB TO HOST port carries MIDI and audio), type a sound name and have the keyboard switch to it automatically, plus playing samples or the soundboard's sounds from the keys and through the keyboard's speakers. Needs Xcode on the Mac and the Apple developer account; the voice list file can be reused. To check first: whether the EW425 changes its main voice when it receives a program change from outside (otherwise use Local Control off and echo the notes back).
+- More drum-kit keys in the lookup (the SFX Kits 1 and 2, voices 309 and 310, have one effect per key).
 - Sound visualiser on an external screen. The web version can only mirror the iPad screen; a separate output needs the native app.
 - Automations: one sound starting, stopping or fading others.
 - Multiple boards (per show or scene).
@@ -194,3 +200,4 @@ board/img/*.svg       the tile pictures
 - **24 Oct 2026**: imported James's 50 MP3s from the Mac, drew a picture for each, grouped them into sections, and switched long clips to streaming to save memory.
 - **25 Oct 2026**: made the offline home-screen version, created the GitHub repo and turned on GitHub Pages. Live at https://jamesaharper1987-max.github.io/improv-soundboard/.
 - **25 Oct 2026 (later)**: removed related sounds; fixed Stop all disappearing when scrolling (top bar now stays pinned); added a per-sound **Fade out** button (6 s). Cache bumped to `soundboard-2026-10-25b`. (These changes were first made by mistake on the old test artifact, with a 4 s fade, then applied to the GitHub repo.)
+- **25 Oct 2026 (evening)**: added the **Keyboard** voice lookup panel with the PSR-EW425's 820 voices, search, filters and starring. Cache bumped to `soundboard-2026-10-25c`.

@@ -42,7 +42,7 @@ body{
 }
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--house)}
 button,input,label{touch-action:manipulation}
-input[type=text]{-webkit-user-select:text;user-select:text}
+input[type=text],input[type=search]{-webkit-user-select:text;user-select:text}
 :focus-visible{outline:3px solid var(--loop);outline-offset:2px}
 
 /* ---------- stage bar ---------- */
@@ -154,6 +154,36 @@ dialog::backdrop{background:var(--scrim)}
 .confirm .btn{min-height:42px}
 .confirm .btn-quiet{color:var(--house);border-color:var(--house)}
 
+/* ---------- keyboard voice lookup (side panel; the board stays usable beside it) ---------- */
+.kb{position:fixed;z-index:8;top:var(--bar-h,120px);right:0;bottom:0;width:min(420px,100vw);background:var(--deck);border-left:1px solid var(--rule);box-shadow:-16px 0 40px var(--shadow);display:flex;flex-direction:column;padding-right:env(safe-area-inset-right,0px)}
+.kb-head{padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--rule)}
+.kb-title{display:flex;align-items:center;gap:10px}
+.kb-title h2{flex:1;margin:0;font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;letter-spacing:.03em}
+.kb-title .btn{min-height:42px}
+.kb-search{position:relative}
+.kb-search input{width:100%;box-sizing:border-box;font:400 1.15rem/1 var(--f-body);min-height:52px;padding:0 48px 0 14px;border-radius:12px;border:1.5px solid var(--rule);background:var(--deck-2);color:var(--ink);-webkit-appearance:none;appearance:none}
+.kb-search input::-webkit-search-cancel-button{display:none}
+.kb-search input:focus{border-color:var(--loop);outline:none}
+.kb-clear{position:absolute;right:4px;top:4px;width:44px;height:44px;border:none;background:transparent;color:var(--ink-dim);font-size:1.5rem;line-height:1;cursor:pointer;border-radius:10px}
+.kb-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+.kb-chips::-webkit-scrollbar{display:none}
+.kb-chip{flex:none;font:700 .88rem/1 var(--f-body);min-height:38px;padding:0 13px;border-radius:19px;border:1.5px solid var(--rule);background:transparent;color:var(--ink-dim);cursor:pointer;white-space:nowrap}
+.kb-chip[aria-pressed="true"]{background:var(--loop);border-color:var(--loop);color:var(--house)}
+.kb-count{margin:0;font-size:.85rem;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.kb-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0;padding:6px 0 16px;list-style:none;overscroll-behavior:contain}
+.kb-item{display:flex;align-items:center;gap:14px;padding:9px 8px 9px 16px;border-bottom:1px solid rgba(54,60,73,.55)}
+.kb-num{flex:none;width:3.4ch;text-align:right;font-family:var(--f-display);font-weight:800;font-size:2rem;line-height:1;color:var(--live);font-variant-numeric:tabular-nums}
+.kb-num.kit{font-size:1.1rem;width:3.4ch;color:var(--loop)}
+.kb-txt{flex:1;min-width:0}
+.kb-name{font-weight:700;font-size:1.05rem;line-height:1.2;overflow-wrap:anywhere}
+.kb-name mark{background:none;color:var(--live);text-decoration:underline;text-underline-offset:3px}
+.kb-meta{font-size:.82rem;color:var(--ink-dim);margin-top:3px}
+.kb-meta .midi{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.kb-star{flex:none;width:44px;height:44px;border:none;background:transparent;color:var(--ink-faint);font-size:1.45rem;cursor:pointer;border-radius:10px}
+.kb-star[aria-pressed="true"]{color:var(--live)}
+.kb-empty{padding:24px 16px;color:var(--ink-dim)}
+.kb-foot{margin:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule);font-size:.82rem;color:var(--ink-dim)}
+
 @media (max-width:520px){
   .brand h1{font-size:1.7rem}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -172,6 +202,7 @@ dialog::backdrop{background:var(--scrim)}
       <p id="status-line">Loading board…</p>
     </div>
     <div class="actions">
+      <button class="btn" id="kb-toggle" type="button" aria-pressed="false" aria-controls="kb-panel">Keyboard</button>
       <button class="btn" id="edit-toggle" type="button" aria-pressed="false">Edit board</button>
       <button class="btn btn-stop" id="stop-all" type="button" disabled>Stop all</button>
     </div>
@@ -187,6 +218,23 @@ dialog::backdrop{background:var(--scrim)}
 </header>
 
 <main class="grid" id="board" aria-label="Sounds"></main>
+
+<aside class="kb" id="kb-panel" aria-labelledby="kb-title" hidden>
+  <div class="kb-head">
+    <div class="kb-title">
+      <h2 id="kb-title">Keyboard voices</h2>
+      <button class="btn" id="kb-close" type="button">Close</button>
+    </div>
+    <div class="kb-search">
+      <input type="search" id="kb-q" placeholder="Find a sound, e.g. whistle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Search the keyboard's voices">
+      <button class="kb-clear" id="kb-clear" type="button" aria-label="Clear search" hidden>×</button>
+    </div>
+    <div class="kb-chips" id="kb-chips" role="group" aria-label="Filter"></div>
+    <p class="kb-count" id="kb-count" aria-live="polite"></p>
+  </div>
+  <ul class="kb-list" id="kb-list"></ul>
+  <p class="kb-foot">Yamaha PSR-EW425: turn the dial to the big number. A category button jumps to the first voice of that group.</p>
+</aside>
 
 
 <div class="overlay" id="start-overlay">
@@ -1021,6 +1069,145 @@ $('#edit-toggle').addEventListener('click', () => {
   $('#edit-tools').hidden = !editMode;
   renderBoard();
 });
+
+/* ================= keyboard voice lookup (Yamaha PSR-EW425) ================= */
+// A searchable copy of the keyboard's Voice List, so a sound can be found by name and
+// dialled up on the keyboard. Read-only: nothing is sent to the keyboard (Safari has no Web MIDI).
+const kb = { data: null, loading: null, filter: 'all', favs: new Set(), open: false };
+const KB_FILTERS = [
+  ['all', 'All'], ['fx', 'Sound effects'], ['favs', '★ Starred'],
+  ['Piano', 'Piano'], ['Organ', 'Organ'], ['Guitar & Bass', 'Guitar & Bass'], ['Strings', 'Strings'],
+  ['Brass', 'Brass'], ['Woodwind', 'Woodwind'], ['Synth', 'Synth'], ['Choir & Pad', 'Choir & Pad'],
+  ['World', 'World'], ['Percussion & Drums', 'Drums'], ['Arpeggio', 'Arpeggio'], ['XGlite', 'XGlite'],
+];
+const KB_FX = new Set([214, 309, 310, 569, 619, 621, 688, 724, 742, 749, 760, 771]); // plus 772–820 below
+const isFx = n => KB_FX.has(n) || n >= 772;
+const NOTE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const noteName = n => NOTE[n % 12] + (Math.floor(n / 12) - 2); // Yamaha naming: middle C (60) = C3
+const fold = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9#&]+/g, ' ').trim();
+try { for (const n of JSON.parse(localStorage.getItem('kb-favs') || '[]')) kb.favs.add(n); } catch {}
+function saveFavs() { try { localStorage.setItem('kb-favs', JSON.stringify([...kb.favs])); } catch {} }
+
+function kbLoad() {
+  if (kb.data) return Promise.resolve(kb.data);
+  if (!kb.loading) kb.loading = fetch('keyboard/psr-ew425-voices.json').then(r => {
+    if (!r.ok) throw new Error(String(r.status));
+    return r.json();
+  }).then(d => {
+    const starts = {};
+    const voices = d.voices.map(([n, cat, name, msb, lsb, pc]) => {
+      if (!(cat in starts)) starts[cat] = n;
+      return { n, cat, name, msb, lsb, pc, pos: n - starts[cat] + 1, key: fold(name + ' ' + cat), words: fold(name).split(' ') };
+    });
+    const kits = (d.kitSounds || []).map(k => {
+      const kit = voices[k.kit - 1];
+      return { ...k, cat: kit.cat, kitName: kit.name, key: fold(k.name), words: fold(k.name).split(' ') };
+    });
+    kb.data = { voices, kits, starts };
+    return kb.data;
+  }).catch(err => { kb.loading = null; throw err; });
+  return kb.loading;
+}
+// Score how well an entry matches every word typed: whole word > start of a word > anywhere.
+function kbScore(item, terms) {
+  let score = 0;
+  for (const t of terms) {
+    if (item.words.includes(t)) score += 3;
+    else if (item.words.some(w => w.startsWith(t))) score += 2;
+    else if (item.key.includes(t)) score += 1;
+    else return 0;
+  }
+  return score;
+}
+function kbOrdinal(n) { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+function kbHighlight(name, terms) {
+  const el = document.createDocumentFragment();
+  if (!terms.length) { el.append(name); return el; }
+  const re = new RegExp('(' + terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'ig');
+  let last = 0;
+  name.replace(re, (m, _g, i) => { el.append(name.slice(last, i), h('mark', null, m)); last = i + m.length; return m; });
+  el.append(name.slice(last));
+  return el;
+}
+function kbVoiceRow(v, terms) {
+  const fav = kb.favs.has(v.n);
+  const midi = v.msb == null ? 'panel only, no MIDI number' : `MIDI ${v.msb}·${v.lsb}·${v.pc}`;
+  return h('li', { class: 'kb-item' },
+    h('span', { class: 'kb-num', 'aria-label': 'Voice ' + v.n }, String(v.n)),
+    h('div', { class: 'kb-txt' },
+      h('div', { class: 'kb-name' }, kbHighlight(v.name, terms)),
+      h('div', { class: 'kb-meta' }, v.cat === 'XGlite' ? 'XGlite · ' : `${v.cat}, ${kbOrdinal(v.pos)} in group · `, h('span', { class: 'midi' }, midi))),
+    h('button', { class: 'kb-star', type: 'button', 'aria-pressed': String(fav), 'aria-label': (fav ? 'Unstar ' : 'Star ') + v.name, onclick: e => {
+      if (kb.favs.has(v.n)) kb.favs.delete(v.n); else kb.favs.add(v.n);
+      saveFavs();
+      const on = kb.favs.has(v.n);
+      e.currentTarget.setAttribute('aria-pressed', String(on));
+      e.currentTarget.textContent = on ? '★' : '☆';
+      if (kb.filter === 'favs') kbRender();
+    } }, fav ? '★' : '☆'));
+}
+function kbKitRow(k, terms) {
+  return h('li', { class: 'kb-item' },
+    h('span', { class: 'kb-num kit', 'aria-label': 'Voice ' + k.kit }, String(k.kit)),
+    h('div', { class: 'kb-txt' },
+      h('div', { class: 'kb-name' }, kbHighlight(k.name, terms)),
+      h('div', { class: 'kb-meta' }, `Drum kit key: choose ${k.kitName} (${k.kit}), then play ${noteName(k.note)}`)),
+    h('span', { style: 'width:44px;flex:none' }));
+}
+function kbRender() {
+  const list = $('#kb-list'), count = $('#kb-count');
+  if (!kb.data) return;
+  const q = fold($('#kb-q').value);
+  $('#kb-clear').hidden = !$('#kb-q').value;
+  const terms = q ? q.split(' ') : [];
+  const f = kb.filter;
+  const pass = v => f === 'all' || (f === 'fx' ? isFx(v.n) : f === 'favs' ? kb.favs.has(v.n) : v.cat === f);
+  let rows;
+  if (/^\d{1,3}$/.test(q)) {
+    const v = kb.data.voices[Number(q) - 1];
+    rows = v ? [{ v, s: 9 }] : [];
+  } else {
+    rows = kb.data.voices.filter(pass).map(v => ({ v, s: terms.length ? kbScore(v, terms) : 1 })).filter(r => r.s > 0);
+    if (terms.length && (f === 'all' || f === 'fx' || f === 'Percussion & Drums'))
+      for (const k of kb.data.kits) { const s = kbScore(k, terms); if (s) rows.push({ k, s: s - .5 }); }
+    if (terms.length) rows.sort((a, b) => b.s - a.s || (a.v ? a.v.n : a.k.kit) - (b.v ? b.v.n : b.k.kit));
+  }
+  const shown = rows.slice(0, 900);
+  list.replaceChildren(...shown.map(r => r.v ? kbVoiceRow(r.v, terms) : kbKitRow(r.k, terms)));
+  if (!rows.length) list.append(h('li', { class: 'kb-empty' }, f === 'favs' && !terms.length ? 'Nothing starred yet. Tap ☆ next to a voice to keep it here.' : 'No voice matches that. Try a shorter word, or “All”.'));
+  count.textContent = rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Type to narrow it down.` : `${rows.length} match${rows.length === 1 ? '' : 'es'}`;
+  list.scrollTop = 0;
+}
+function kbChips() {
+  $('#kb-chips').replaceChildren(...KB_FILTERS.map(([id, label]) => h('button', {
+    class: 'kb-chip', type: 'button', 'aria-pressed': String(kb.filter === id),
+    onclick: () => { kb.filter = id; kbChips(); kbRender(); },
+  }, label)));
+}
+function setBarHeight() { document.documentElement.style.setProperty('--bar-h', $('.bar').getBoundingClientRect().bottom + 'px'); }
+async function kbToggle(force) {
+  kb.open = force ?? !kb.open;
+  $('#kb-panel').hidden = !kb.open;
+  const b = $('#kb-toggle');
+  b.classList.toggle('btn-on', kb.open);
+  b.setAttribute('aria-pressed', String(kb.open));
+  if (!kb.open) { $('#kb-q').blur(); return; }
+  setBarHeight();
+  $('#kb-q').focus(); // inside the tap, so the iPad keyboard comes up
+  if (!kb.data) {
+    $('#kb-count').textContent = 'Loading the voice list…';
+    try { await kbLoad(); } catch { $('#kb-count').textContent = 'Couldn’t load the voice list. Open the app once with internet so it is saved for offline use.'; return; }
+  }
+  kbRender();
+}
+kbChips();
+$('#kb-toggle').addEventListener('click', () => kbToggle());
+$('#kb-close').addEventListener('click', () => kbToggle(false));
+$('#kb-q').addEventListener('input', kbRender);
+$('#kb-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } else if (e.key === 'Escape') kbToggle(false); });
+$('#kb-clear').addEventListener('click', () => { $('#kb-q').value = ''; kbRender(); $('#kb-q').focus(); });
+if ('ResizeObserver' in window) new ResizeObserver(setBarHeight).observe($('.bar'));
+addEventListener('resize', setBarHeight);
 
 /* ================= folder board (sounds published alongside this page) ================= */
 let manifest = null, importing = false;
