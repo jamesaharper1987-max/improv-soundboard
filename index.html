@@ -402,6 +402,17 @@ function h(tag, attrs, ...kids) {
   return el;
 }
 
+// Files that live next to this page. When the page runs from a copy saved inside another app
+// (MIDIWeb Browser's offline save, address midiweb://…), those files aren't beside it, so fetch
+// them from the live site instead. The sounds are then stored on the device as usual.
+const LIVE_SITE = 'https://jamesaharper1987-max.github.io/improv-soundboard/';
+async function appFetch(path, opts) {
+  let r = null;
+  try { r = await fetch(path, opts); if (r.ok) return r; } catch {}
+  if (new URL(path, location.href).href.startsWith(LIVE_SITE)) return r || Promise.reject(new Error('offline'));
+  return fetch(LIVE_SITE + path, opts);
+}
+
 /* ================= storage (on this device) ================= */
 const store = {
   db: null, ok: false,
@@ -647,7 +658,7 @@ function unlockPool(n) {
   }
 }
 function takeEl() { const p = pool.find(x => !x.busy) || makeEl(); p.busy = true; return p; }
-function releaseEl(p) { try { p.el.pause(); } catch {} try { p.node.disconnect(); } catch {} p.el.onended = null; p.el.onerror = null; p.busy = false; }
+function releaseEl(p) { try { p.el.pause(); } catch {} try { p.node.disconnect(); } catch {} p.el.onended = null; p.el.onerror = null; p.el.onplaying = null; p.busy = false; }
 
 function voiceOut(s) {
   const out = ctx.createGain(), fader = ctx.createGain();
@@ -676,15 +687,19 @@ function streamCopy(v, s, full) {
     dropCopy(v, copy);
     if (!v.loop && playing.get(v.id) === v) { playing.delete(v.id); disconnectVoice(v); refreshPlaying(); }
   };
-  p.el.onerror = () => {
+  const onErr = () => {
+    if (!v.copies.includes(copy)) return; // this element has already moved on to another sound
     dropCopy(v, copy);
-    if (!v.copies.length && playing.get(v.id) === v) {
-      playing.delete(v.id); failed.add(v.id); refreshPlaying(); renderBoard();
-      toast(`“${s.name}” couldn't be played. Edit it and choose the file again.`);
-    }
+    if (v.copies.length || playing.get(v.id) !== v || v.stopped) return;
+    // One quiet retry on a fresh element before calling the sound broken (iPad sometimes refuses a play).
+    if (!v.retried) { v.retried = true; setTimeout(() => { if (playing.get(v.id) === v && !v.stopped && !v.copies.length) streamCopy(v, s, true); }, 250); return; }
+    playing.delete(v.id); disconnectVoice(v); failed.add(v.id); refreshPlaying(); renderBoard();
+    toast(`“${s.name}” didn't start. Tap it to try again.`);
   };
+  p.el.onerror = onErr;
+  p.el.onplaying = () => { if (failed.delete(v.id)) renderBoard(); };
   const pr = p.el.play();
-  if (pr) pr.catch(() => p.el.onerror && p.el.onerror());
+  if (pr) pr.catch(err => { if (err && err.name === 'AbortError') return; onErr(); });
 }
 function dropCopy(v, copy) { v.copies = v.copies.filter(c => c !== copy); releaseEl(copy.p); try { copy.g.disconnect(); } catch {} }
 // Hand each looping stream over to a fresh copy X seconds before it ends; the two crossfade (equal power).
@@ -893,7 +908,7 @@ async function startShow() {
   if (importing) return;
   go.disabled = true;
   let resumed;
-  try { resumed = ensureAudio(); unlockPool(16); await resumed; } catch { status.textContent = "Audio couldn't start. Reload the page and tap GO again."; go.disabled = false; return; }
+  try { resumed = ensureAudio(); unlockPool(24); await resumed; } catch { status.textContent = "Audio couldn't start. Reload the page and tap GO again."; go.disabled = false; return; }
   const list = sorted().filter(s => !isStream(s));
   for (const s of sorted()) if (isStream(s)) failed.delete(s.id);
   for (let i = 0; i < list.length; i++) {
@@ -1173,9 +1188,13 @@ function saveFavs() { try { localStorage.setItem('kb-favs', JSON.stringify([...k
 
 function kbLoad() {
   if (kb.data) return Promise.resolve(kb.data);
-  if (!kb.loading) kb.loading = fetch('keyboard/psr-ew425-voices.json').then(r => {
+  if (!kb.loading) kb.loading = appFetch('keyboard/psr-ew425-voices.json').then(r => {
     if (!r.ok) throw new Error(String(r.status));
     return r.json();
+  }).then(d => { try { localStorage.setItem('kb-voices', JSON.stringify(d)); } catch {} return d; }, err => {
+    let d = null; try { d = JSON.parse(localStorage.getItem('kb-voices') || 'null'); } catch {}
+    if (!d) throw err;
+    return d;
   }).then(d => {
     const starts = {};
     const voices = d.voices.map(([n, cat, name, msb, lsb, pc]) => {
@@ -1680,14 +1699,14 @@ addEventListener('resize', setBarHeight);
 /* ================= folder board (sounds published alongside this page) ================= */
 let manifest = null, importing = false;
 async function fetchBundleFile(path, type) {
-  const r = await fetch('board/' + path);
+  const r = await appFetch('board/' + path);
   if (!r.ok) throw new Error(String(r.status));
   const buf = await r.arrayBuffer();
   return type.startsWith('audio/') ? new File([buf], path.split('/').pop(), { type }) : new Blob([buf], { type });
 }
 async function loadManifest() {
   try {
-    const r = await fetch('board/board.json', { cache: 'no-cache' });
+    const r = await appFetch('board/board.json', { cache: 'no-cache' });
     if (!r.ok) return null;
     const m = await r.json();
     return m && m.app === 'improv-soundboard' && Array.isArray(m.sounds) ? m : null;
@@ -1734,15 +1753,10 @@ try { if (document.querySelector('link[rel="manifest"]') && 'serviceWorker' in n
   renderBoard();
   manifest = await loadManifest();
   if (manifest) await importBundle(manifest);
-  else if (!sounds.length) {
-    let seeded = null; try { seeded = await store.getMeta('seeded'); } catch {}
-    if (!seeded) {
-      sounds = DEMOS.map((d, i) => fromRecord({ ...d, order: i }));
-      for (const s of sounds) await persist(s);
-      try { await store.setMeta('seeded', true); } catch {}
-    }
-  }
-  $('#go-status').textContent = `${sounds.length} sound${sounds.length === 1 ? '' : 's'} on the board.`;
+  const real = sounds.filter(s => !s.demo);
+  $('#go-status').textContent = real.length
+    ? `${real.length} sound${real.length === 1 ? '' : 's'} on the board.`
+    : 'The sounds haven’t been downloaded yet. Connect to the internet and reload this page once.';
   renderBoard();
 })();
 })();
