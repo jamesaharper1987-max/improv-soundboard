@@ -204,6 +204,42 @@ dialog::backdrop{background:var(--scrim)}
 .kb-item.on .kb-num{color:var(--loop)}
 .kb-item.na .kb-num{color:var(--ink-faint)}
 .kb-linked .kb-foot{display:none}
+.kb-tabs{flex:1;display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--deck-2);border:1.5px solid var(--rule)}
+.kb-tab{flex:1;min-height:40px;border:none;border-radius:9px;background:transparent;color:var(--ink-dim);font:800 1.15rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.kb-tab[aria-selected="true"]{background:var(--ink);color:var(--house)}
+.kb-pickbar{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 12px;border-radius:12px;background:var(--live);color:var(--live-ink);font-weight:700}
+.kb-pickbar span{flex:1;min-width:0}
+.kb-pickbar .btn{min-height:40px;background:var(--live-ink);color:var(--live);border-color:var(--live-ink)}
+.kb-picking .kb-item[data-n]{cursor:pointer}
+.kb.mode-scenes .kb-search,.kb.mode-scenes .kb-chips,.kb.mode-scenes .kb-count,.kb.mode-scenes .kb-list,.kb.mode-scenes .kb-foot{display:none!important}
+.sc-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px 20px;display:flex;flex-direction:column;gap:10px}
+.sc-top{flex:none;display:flex;align-items:center;gap:10px}
+.sc-top p{flex:1;margin:0;font-size:.85rem;color:var(--ink-dim)}
+.sc-card{flex:none;display:flex;align-items:stretch;border-radius:14px;background:var(--deck-2);border:1.5px solid var(--rule);overflow:hidden}
+.sc-card.on{border-color:var(--loop);background:rgba(95,196,216,.10);box-shadow:0 0 18px rgba(95,196,216,.18)}
+.sc-go{flex:1;min-width:0;text-align:left;background:transparent;border:none;color:var(--ink);padding:12px 14px;cursor:pointer;font:inherit}
+.sc-go:active{background:var(--deck-3)}
+.sc-name{font:800 1.35rem/1.05 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.sc-card.on .sc-name{color:var(--loop)}
+.sc-parts{margin:6px 0 0;padding:0;list-style:none;font-size:.85rem;color:var(--ink-dim);display:flex;flex-direction:column;gap:2px}
+.sc-parts b{color:var(--ink);font-weight:700}
+.sc-edit{flex:none;width:64px;border:none;border-left:1px solid var(--rule);background:transparent;color:var(--ink-dim);font:700 .85rem/1 var(--f-body);cursor:pointer}
+.sc-form{flex:none;display:flex;flex-direction:column;gap:16px}
+.sc-form h3{margin:0;font:800 1.3rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.sc-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.sc-part{border:1.5px solid var(--rule);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--deck-2)}
+.sc-part .lbl,.sc-form .lbl{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-dim)}
+.sc-voice{flex:1;min-width:0;text-align:left;min-height:44px;padding:0 12px;border-radius:10px;border:1.5px dashed var(--rule);background:var(--deck);color:var(--ink-dim);font:700 .98rem/1.2 var(--f-body);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-voice.set{border-style:solid;color:var(--ink)}
+.sc-voice.set b{color:var(--live);margin-right:6px;font-family:var(--f-display);font-size:1.15rem}
+.sc-step{display:inline-flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.sc-step button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--rule);background:var(--deck);color:var(--ink);font:700 1.2rem/1 var(--f-body);cursor:pointer}
+.sc-step output{min-width:5.2ch;text-align:center;font-weight:700}
+.sc-mini{min-height:40px!important;padding:0 12px!important;font-size:.9rem!important}
+.sc-x{width:40px;height:40px;border-radius:10px;border:none;background:transparent;color:var(--ink-faint);font-size:1.3rem;cursor:pointer}
+.sc-learn{background:var(--live)!important;color:var(--live-ink)!important;border-color:var(--live)!important}
+.sc-foot{display:flex;flex-wrap:wrap;gap:10px}
+.sc-foot .spacer{flex:1}
 .kb-foot{margin:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule);font-size:.82rem;color:var(--ink-dim)}
 
 @media (max-width:520px){
@@ -244,7 +280,11 @@ dialog::backdrop{background:var(--scrim)}
 <aside class="kb" id="kb-panel" aria-labelledby="kb-title" hidden>
   <div class="kb-head">
     <div class="kb-title">
-      <h2 id="kb-title">Keyboard voices</h2>
+      <h2 id="kb-title" class="vh">Keyboard</h2>
+      <div class="kb-tabs" id="kb-tabs" role="tablist" aria-label="Keyboard">
+        <button class="kb-tab" type="button" role="tab" data-mode="voices" aria-selected="true">Voices</button>
+        <button class="kb-tab" type="button" role="tab" data-mode="scenes" aria-selected="false" hidden>Scenes</button>
+      </div>
       <button class="btn" id="kb-close" type="button">Close</button>
     </div>
     <div class="kb-link" id="kb-link" hidden>
@@ -263,6 +303,10 @@ dialog::backdrop{background:var(--scrim)}
       <p class="kb-link-help" id="kb-thru-help" hidden>Your keys now play through this app, so the voice you tap here is the one you hear. If every note sounds twice, set <b>Local Control</b> to <b>Off</b> in the keyboard’s Function menu. Turn this switch off before unplugging, or the keys go quiet until Local Control is back on.</p>
       </div>
     </div>
+    <div class="kb-pickbar" id="kb-pickbar" hidden>
+      <span id="kb-pick-text">Choose a voice</span>
+      <button class="btn" id="kb-pick-cancel" type="button">Cancel</button>
+    </div>
     <div class="kb-search">
       <input type="search" id="kb-q" placeholder="Find a sound, e.g. whistle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Search the keyboard's voices">
       <button class="kb-clear" id="kb-clear" type="button" aria-label="Clear search" hidden>×</button>
@@ -271,6 +315,7 @@ dialog::backdrop{background:var(--scrim)}
     <p class="kb-count" id="kb-count" aria-live="polite"></p>
   </div>
   <ul class="kb-list" id="kb-list"></ul>
+  <div class="sc-wrap" id="kb-scenes" hidden></div>
   <p class="kb-foot" id="kb-foot">Yamaha PSR-EW425: turn the dial to the big number. A category button jumps to the first voice of that group.</p>
 </aside>
 
@@ -1111,7 +1156,7 @@ $('#edit-toggle').addEventListener('click', () => {
 /* ================= keyboard voice lookup (Yamaha PSR-EW425) ================= */
 // A searchable copy of the keyboard's Voice List, so a sound can be found by name and
 // dialled up on the keyboard. Read-only: nothing is sent to the keyboard (Safari has no Web MIDI).
-const kb = { data: null, loading: null, filter: 'all', favs: new Set(), open: false, current: 0 };
+const kb = { data: null, loading: null, filter: 'all', favs: new Set(), open: false, current: 0, mode: 'voices' };
 const KB_FILTERS = [
   ['all', 'All'], ['fx', 'Sound effects'], ['favs', '★ Starred'],
   ['Piano', 'Piano'], ['Organ', 'Organ'], ['Guitar & Bass', 'Guitar & Bass'], ['Strings', 'Strings'],
@@ -1232,13 +1277,14 @@ async function kbToggle(force) {
   b.setAttribute('aria-pressed', String(kb.open));
   if (!kb.open) { $('#kb-q').blur(); return; }
   setBarHeight();
-  $('#kb-q').focus(); // inside the tap, so the iPad keyboard comes up
+  if (kb.mode === 'voices') $('#kb-q').focus(); // inside the tap, so the iPad keyboard comes up
   if (mid.supported && !mid.access && kbGet('kb-midi') === 'on') midiConnect();
   if (!kb.data) {
     $('#kb-count').textContent = 'Loading the voice list…';
     try { await kbLoad(); } catch { $('#kb-count').textContent = 'Couldn’t load the voice list. Open the app once with internet so it is saved for offline use.'; return; }
   }
   kbRender();
+  if (kb.mode === 'scenes') { await scLoad(); scRender(); }
 }
 /* ---- send to keyboard (only where the browser offers Web MIDI: Chrome on a Mac, MIDIWeb Browser on iPad) ---- */
 // Selecting a voice = Bank Select MSB (CC 0), Bank Select LSB (CC 32), then Program Change.
@@ -1279,6 +1325,7 @@ function midiRefresh() {
   else if (mid.access) midiStatus('No keyboard found. Check the USB TO HOST cable and that the keyboard is on.');
   $('#kb-link-status').title = $('#kb-link-status').textContent;
   if (kb.data) kbRender();
+  if (kb.mode === 'scenes' && sc.loaded) scRender();
 }
 async function midiConnect() {
   if (!mid.supported || mid.access) return;
@@ -1304,19 +1351,48 @@ function midiLocal(on) {
   const v = on ? 127 : 0;
   try { mid.out.send([0xB0 | mid.ch, 122, v]); if (mid.ch) mid.out.send([0xB0, 122, v]); } catch {}
 }
+function relayOut(msg) {
+  mid.echo.set(msg.join(','), performance.now());
+  if (mid.echo.size > 512) mid.echo.clear();
+  try { mid.out.send(msg); } catch {}
+}
 function midiRelay(e) {
   if (!mid.thru || !mid.out) return;
-  const d = e.data, st = d[0];
+  const d = Array.from(e.data), st = d[0];
   if (st < 0x80 || st >= 0xF0) return; // ignore clock, sysex, active sensing
-  const msg = [(st & 0xF0) | mid.ch, ...Array.from(d).slice(1)];
-  const key = msg.join(','), now = performance.now();
-  // If the keyboard echoes back what we sent, drop it rather than loop.
-  if (now - (mid.echo.get(key) || -1e9) < 40) return;
+  const now = performance.now();
+  // If the keyboard echoes back something we just sent, drop it rather than loop.
+  if (now - (mid.echo.get(d.join(',')) || -1e9) < 40) return;
   if (now - mid.rateT > 1000) { mid.rateT = now; mid.rate = 0; }
   if (++mid.rate > 1500) { midiThru(false); toast('Stopped keys-through: the keyboard was sending its notes back in a loop.'); return; }
-  mid.echo.set(key, now);
-  if (mid.echo.size > 256) mid.echo.clear();
-  try { mid.out.send(msg); } catch {}
+  const type = st & 0xF0, isNote = type === 0x80 || type === 0x90 || type === 0xA0;
+  const on = type === 0x90 && d[2] > 0;
+  // Scene editor: "Set from keyboard" takes the next key pressed as the split point.
+  if (sc.learn && on) { sc.learn = false; sc.draft.split = d[1]; scRender(); return; }
+  // A note that started in a scene must also stop where it started, even if the scene changed meanwhile.
+  if (isNote && !on && sc.routes.has(d[1])) {
+    for (const [c, n] of sc.routes.get(d[1])) relayOut([type | c, n, d[2]]);
+    if (type !== 0xA0) sc.routes.delete(d[1]);
+    return;
+  }
+  const scene = sc.active && sc.list.find(x => x.id === sc.active);
+  // Choosing a voice on the keyboard itself ends the scene (last choice wins).
+  if (scene && type === 0xC0) { scLeave(); }
+  else if (scene) {
+    const parts = scParts(scene);
+    if (isNote) {
+      if (!on) return; // a note-off with no route: nothing is sounding
+      const dest = parts.filter(p => p.zone === 'all' || (p.zone === 'right') === (d[1] >= scene.split))
+        .map(p => [p.ch, Math.min(127, Math.max(0, d[1] + 12 * (p.oct || 0)))]);
+      if (!dest.length) return;
+      sc.routes.set(d[1], dest);
+      for (const [c, n] of dest) relayOut([0x90 | c, n, d[2]]);
+    } else {
+      for (const p of parts) relayOut([type | p.ch, ...d.slice(1)]); // pedal, pitch bend, knobs: every part
+    }
+    return;
+  }
+  relayOut([type | mid.ch, ...d.slice(1)]);
 }
 function midiWireInputs() {
   for (const i of mid.ins) i.onmidimessage = null;
@@ -1331,6 +1407,7 @@ function midiWireInputs() {
 function midiThru(on) {
   if (!on && mid.out) { try { mid.out.send([0xB0 | mid.ch, 123, 0]); } catch {} } // all notes off
   mid.thru = on;
+  if (!on) sc.active = null;
   kbSet('kb-thru', on ? 'on' : 'off');
   midiLocal(!on);
   midiRefresh();
@@ -1340,6 +1417,7 @@ function kbSendVoice(n) {
   const v = kb.data.voices[n - 1];
   if (!v || v.msb == null) return;
   const c = mid.ch;
+  if (sc.active) scLeave();
   if (!midiSend([0xB0 | c, 0, v.msb])) return;
   midiSend([0xB0 | c, 32, v.lsb]);
   midiSend([0xC0 | c, v.pc - 1]);
@@ -1354,6 +1432,7 @@ if (mid.supported) {
   $('#kb-out').addEventListener('change', e => { mid.out = mid.outs.find(o => o.id === e.target.value) || null; kbSet('kb-out', e.target.value); midiRefresh(); });
   $('#kb-ch').addEventListener('change', e => {
     if (mid.thru && mid.out) { try { mid.out.send([0xB0 | mid.ch, 123, 0]); } catch {} }
+    if (sc.active) scLeave();
     mid.ch = Number(e.target.value); kbSet('kb-ch', String(mid.ch + 1));
     if (mid.thru) midiLocal(false);
     midiRefresh();
@@ -1368,10 +1447,225 @@ if (mid.supported) {
     if (midiSend([0x90 | c, 60, 96])) setTimeout(() => midiSend([0x80 | c, 60, 0]), 700);
   });
   $('#kb-list').addEventListener('click', e => {
-    if (!mid.out || e.target.closest('.kb-star')) return;
+    if (e.target.closest('.kb-star')) return;
     const li = e.target.closest('.kb-item[data-n]');
-    if (li) kbSendVoice(Number(li.dataset.n));
+    if (!li) { if (sc.pick != null && e.target.closest('.kb-item')) toast('That one can’t be chosen from here. Pick another voice.'); return; }
+    if (sc.pick != null) scPicked(Number(li.dataset.n));
+    else if (mid.out) kbSendVoice(Number(li.dataset.n));
   });
+}
+
+/* ---- scenes: one tap sets up splits and layers of keyboard voices (keys play through the app) ---- */
+// A scene has up to three parts: right hand (keys at or above the split), left hand (below it) and a
+// layer across the whole keyboard. Each part plays on its own MIDI channel (the chosen channel, +1, +2),
+// so the keyboard's tone generator plays all three voices at once. The app sends each key to the right parts.
+const SC_ZONES = [['right', 'Right hand'], ['left', 'Left hand'], ['all', 'Whole keyboard (layer)']];
+const SC_STARTERS = [
+  { name: 'Mystical forest', split: 54, reverb: 96, sound: 'b-night-crickets', parts: { right: { voice: 177, oct: 0, vol: 110 }, left: { voice: 240, oct: 0, vol: 95 } } },
+  { name: 'Haunted house', split: 54, reverb: 104, sound: null, parts: { right: { voice: 291, oct: 1, vol: 100 }, left: { voice: 115, oct: -1, vol: 90 } } },
+  { name: 'Underwater', split: 54, reverb: 110, sound: null, parts: { right: { voice: 696, oct: 0, vol: 100 }, left: { voice: 683, oct: 0, vol: 95 } } },
+  { name: 'Outer space', split: 54, reverb: 100, sound: null, parts: { right: { voice: 742, oct: 0, vol: 100 }, left: { voice: 227, oct: -1, vol: 95 } } },
+  { name: 'Wild West saloon', split: 54, reverb: 30, sound: 'b-busy-restaurant', parts: { all: { voice: 8, oct: 0, vol: 110 } } },
+  { name: 'Cathedral', split: 54, reverb: 120, sound: null, parts: { right: { voice: 218, oct: 0, vol: 85 }, all: { voice: 55, oct: 0, vol: 105 } } },
+  { name: 'Circus', split: 54, reverb: 40, sound: null, parts: { right: { voice: 643, oct: 0, vol: 105 }, left: { voice: 156, oct: 0, vol: 105 } } },
+  { name: 'Paris café', split: 54, reverb: 50, sound: 'b-busy-restaurant', parts: { right: { voice: 57, oct: 0, vol: 105 }, left: { voice: 117, oct: 0, vol: 95 } } },
+  { name: 'Epic battle', split: 54, reverb: 70, sound: null, parts: { right: { voice: 131, oct: 0, vol: 110 }, left: { voice: 115, oct: -1, vol: 100 } } },
+  { name: 'Sad and rainy', split: 54, reverb: 80, sound: 'b-rain', parts: { right: { voice: 111, oct: 0, vol: 70 }, all: { voice: 2, oct: 0, vol: 105 } } },
+];
+const sc = { list: [], loaded: false, active: null, routes: new Map(), draft: null, pick: null, learn: false, startedSound: null };
+const scId = () => 'sc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function scParts(s) {
+  const out = [];
+  SC_ZONES.forEach(([zone], i) => {
+    const p = s.parts[zone];
+    if (p && p.voice) out.push({ zone, ...p, ch: (mid.ch + i) % 16 });
+  });
+  return out;
+}
+async function scLoad() {
+  if (sc.loaded) return;
+  let list = null;
+  try { list = await store.getMeta('kbScenes'); } catch {}
+  if (!Array.isArray(list)) { try { list = JSON.parse(kbGet('kb-scenes') || 'null'); } catch {} }
+  if (!Array.isArray(list)) list = SC_STARTERS.map(x => ({ id: scId(), ...JSON.parse(JSON.stringify(x)) }));
+  sc.list = list; sc.loaded = true;
+  scSave();
+}
+function scSave() {
+  try { store.setMeta('kbScenes', sc.list); } catch {}
+  kbSet('kb-scenes', JSON.stringify(sc.list));
+}
+function scVoice(n) { return kb.data && n ? kb.data.voices[n - 1] : null; }
+function scSoundName(id) { const s = id && sounds.find(x => x.id === id); return s ? s.name : null; }
+function scSendPart(p, reverb) {
+  const v = scVoice(p.voice); if (!v || v.msb == null) return;
+  const c = p.ch;
+  relayOut([0xB0 | c, 0, v.msb]); relayOut([0xB0 | c, 32, v.lsb]); relayOut([0xC0 | c, v.pc - 1]);
+  relayOut([0xB0 | c, 7, Math.max(0, Math.min(127, p.vol ?? 100))]);
+  relayOut([0xB0 | c, 91, Math.max(0, Math.min(127, reverb ?? 64))]);
+}
+function scApply(s) {
+  if (!mid.out) { toast('Connect the keyboard first (Voices tab, Connect).'); return; }
+  if (!kb.data) return;
+  if (!mid.thru) midiThru(true); // scenes need the keys to come through the app
+  for (let i = 0; i < 3; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); // all notes off on the scene channels
+  for (const p of scParts(s)) scSendPart(p, s.reverb);
+  // Board sound: fade out the one the previous scene started, start this scene's.
+  if (sc.startedSound && sc.startedSound !== s.sound && playing.has(sc.startedSound)) fadeSound(sc.startedSound);
+  sc.startedSound = null;
+  let note = '';
+  if (s.sound && byId(s.sound)) {
+    if (!started) note = ' (tap GO to hear its board sound)';
+    else { if (!playing.has(s.sound)) toggle(s.sound); sc.startedSound = s.sound; }
+  }
+  sc.active = s.id; kb.current = 0;
+  toast(`Scene: ${s.name}${note}`);
+  scRender();
+}
+function scLeave() { sc.active = null; if (kb.mode === 'scenes') scRender(); }
+function scSetMode(mode) {
+  kb.mode = mode;
+  $('#kb-panel').classList.toggle('mode-scenes', mode === 'scenes');
+  $('#kb-scenes').hidden = mode !== 'scenes';
+  for (const t of $$('#kb-tabs .kb-tab')) t.setAttribute('aria-selected', String(t.dataset.mode === mode));
+  if (mode === 'scenes') { sc.pick = null; $('#kb-pickbar').hidden = true; $('#kb-list').classList.remove('kb-picking'); scLoad().then(scRender); }
+}
+function scSummary(s) {
+  const lines = [];
+  for (const [zone, label] of SC_ZONES) {
+    const p = s.parts[zone]; if (!p || !p.voice) continue;
+    const v = scVoice(p.voice);
+    const extra = (p.oct ? ` (${p.oct > 0 ? '+' : '−'}${Math.abs(p.oct)} oct)` : '');
+    lines.push(h('li', null, label.replace(' (layer)', '') + ': ', h('b', null, `${p.voice} ${v ? v.name : ''}`), extra));
+  }
+  if (s.parts.left?.voice && (s.parts.right?.voice)) lines.push(h('li', null, 'Split at ', h('b', null, noteName(s.split))));
+  const snd = scSoundName(s.sound);
+  if (snd) lines.push(h('li', null, 'Board sound: ', h('b', null, snd)));
+  return lines;
+}
+function scRender() {
+  const wrap = $('#kb-scenes');
+  if (kb.mode !== 'scenes') return;
+  if (sc.draft) { wrap.replaceChildren(scEditor()); return; }
+  const top = h('div', { class: 'sc-top' },
+    h('p', null, mid.out ? 'Tap a scene to set up the keyboard. Your keys play through the app.' : 'Connect the keyboard (Voices tab) to use scenes. You can still make and edit them here.'),
+    h('button', { class: 'btn sc-mini', type: 'button', onclick: () => scEdit(null) }, 'New scene'));
+  const cards = sc.list.map(s => h('div', { class: 'sc-card' + (sc.active === s.id ? ' on' : '') },
+    h('button', { class: 'sc-go', type: 'button', onclick: () => scApply(s) },
+      h('div', { class: 'sc-name' }, s.name || 'Untitled scene'),
+      h('ul', { class: 'sc-parts' }, scSummary(s))),
+    h('button', { class: 'sc-edit', type: 'button', 'aria-label': 'Edit ' + s.name, onclick: () => scEdit(s.id) }, 'Edit')));
+  wrap.replaceChildren(top, ...cards);
+}
+function scEdit(id) {
+  const s = id ? sc.list.find(x => x.id === id) : null;
+  sc.draft = s ? JSON.parse(JSON.stringify(s)) : { id: null, name: '', split: 54, reverb: 64, sound: null, parts: {} };
+  sc.learn = false;
+  scRender();
+  $('#kb-scenes').scrollTop = 0;
+}
+function scStep(value, fmt, onMinus, onPlus) {
+  return h('span', { class: 'sc-step' },
+    h('button', { type: 'button', 'aria-label': 'Lower', onclick: onMinus }, '−'),
+    h('output', null, fmt(value)),
+    h('button', { type: 'button', 'aria-label': 'Higher', onclick: onPlus }, '+'));
+}
+function scEditor() {
+  const d = sc.draft;
+  const name = h('input', { class: 'txt', type: 'text', maxlength: 40, placeholder: 'e.g. Mystical forest', value: d.name || '', 'aria-label': 'Scene name' });
+  name.addEventListener('input', () => { d.name = name.value; });
+  const parts = SC_ZONES.map(([zone, label], i) => {
+    const p = d.parts[zone] || null;
+    const v = p && scVoice(p.voice);
+    const voiceBtn = h('button', { class: 'sc-voice' + (v ? ' set' : ''), type: 'button', onclick: () => scPick(zone, label) },
+      v ? [h('b', null, String(p.voice)), v.name] : 'Choose a voice…');
+    const box = h('div', { class: 'sc-part' }, h('span', { class: 'lbl' }, label),
+      h('div', { class: 'sc-row' }, voiceBtn, v ? h('button', { class: 'sc-x', type: 'button', 'aria-label': 'Remove ' + label, onclick: () => { delete d.parts[zone]; scRender(); } }, '×') : null));
+    if (v) {
+      const vol = h('input', { type: 'range', min: 0, max: 127, step: 1, value: p.vol ?? 100, 'aria-label': label + ' volume' });
+      vol.style.setProperty('--fill', (vol.value / 127 * 100) + '%');
+      vol.addEventListener('input', () => { p.vol = Number(vol.value); vol.style.setProperty('--fill', (vol.value / 127 * 100) + '%'); });
+      box.append(h('div', { class: 'sc-row' },
+        h('span', { class: 'lbl' }, 'Octave'),
+        scStep(p.oct || 0, x => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x), () => { p.oct = Math.max(-2, (p.oct || 0) - 1); scRender(); }, () => { p.oct = Math.min(2, (p.oct || 0) + 1); scRender(); }),
+        h('span', { class: 'lbl', style: 'margin-left:8px' }, 'Volume'), vol));
+    }
+    return box;
+  });
+  const hasSplit = d.parts.left?.voice || d.parts.right?.voice;
+  const split = h('div', { class: 'sc-row' },
+    h('span', { class: 'lbl' }, 'Split point'),
+    scStep(d.split, noteName, () => { d.split = Math.max(28, d.split - 1); scRender(); }, () => { d.split = Math.min(103, d.split + 1); scRender(); }),
+    mid.out && mid.thru ? h('button', { class: 'btn sc-mini' + (sc.learn ? ' sc-learn' : ''), type: 'button', onclick: () => { sc.learn = !sc.learn; scRender(); } }, sc.learn ? 'Press a key…' : 'Set from keyboard') : null);
+  const rev = h('input', { type: 'range', min: 0, max: 127, step: 1, value: d.reverb ?? 64, 'aria-label': 'Reverb' });
+  rev.style.setProperty('--fill', (rev.value / 127 * 100) + '%');
+  rev.addEventListener('input', () => { d.reverb = Number(rev.value); rev.style.setProperty('--fill', (rev.value / 127 * 100) + '%'); });
+  const snd = h('select', { class: 'kb-select', 'aria-label': 'Board sound' },
+    h('option', { value: '', selected: !d.sound }, 'None'),
+    ...sounds.map(x => h('option', { value: x.id, selected: d.sound === x.id }, x.name)));
+  snd.addEventListener('change', () => { d.sound = snd.value || null; });
+  const save = () => {
+    if (!scParts(d).length) { toast('Choose at least one voice.'); return; }
+    d.name = (d.name || '').trim() || 'Untitled scene';
+    if (!d.id) { d.id = scId(); sc.list.push(d); }
+    else sc.list = sc.list.map(x => x.id === d.id ? d : x);
+    scSave();
+    const saved = d; sc.draft = null; sc.learn = false;
+    if (mid.out) scApply(saved); else scRender();
+  };
+  const del = () => {
+    if (!confirm(`Delete the scene “${d.name || 'Untitled'}”?`)) return;
+    sc.list = sc.list.filter(x => x.id !== d.id); if (sc.active === d.id) sc.active = null;
+    scSave(); sc.draft = null; scRender();
+  };
+  return h('div', { class: 'sc-form' },
+    h('h3', null, d.id ? 'Edit scene' : 'New scene'),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Name'), name),
+    ...parts,
+    hasSplit ? split : null,
+    h('div', { class: 'sc-row' }, h('span', { class: 'lbl' }, 'Reverb'), rev),
+    h('div', { class: 'field' }, h('span', { class: 'lbl' }, 'Board sound (starts with the scene)'), snd),
+    h('div', { class: 'sc-foot' },
+      d.id ? h('button', { class: 'btn btn-danger', type: 'button', onclick: del }, 'Delete') : null,
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'btn btn-quiet', type: 'button', onclick: () => { sc.draft = null; sc.learn = false; scRender(); } }, 'Cancel'),
+      h('button', { class: 'btn btn-primary', type: 'button', onclick: save }, mid.out ? 'Save and play' : 'Save')));
+}
+function scPick(zone, label) {
+  sc.pick = zone;
+  kb.mode = 'voices';
+  $('#kb-panel').classList.remove('mode-scenes');
+  $('#kb-scenes').hidden = true;
+  for (const t of $$('#kb-tabs .kb-tab')) t.setAttribute('aria-selected', 'false');
+  $('#kb-pick-text').textContent = `Choose the ${label.toLowerCase().replace(' (layer)', ' layer')} voice`;
+  $('#kb-pickbar').hidden = false;
+  $('#kb-list').classList.add('kb-picking');
+  $('#kb-q').value = ''; kbRender();
+  $('#kb-q').focus();
+}
+function scPickDone() {
+  sc.pick = null;
+  $('#kb-pickbar').hidden = true;
+  $('#kb-list').classList.remove('kb-picking');
+  scSetMode('scenes');
+}
+function scPicked(n) {
+  const v = scVoice(n); if (!v || v.msb == null) return;
+  const d = sc.draft; if (!d) return scPickDone();
+  const prev = d.parts[sc.pick];
+  d.parts[sc.pick] = { voice: n, oct: prev?.oct || 0, vol: prev?.vol ?? (sc.pick === 'all' ? 90 : 100) };
+  // Let the voice be heard straight away on that part's channel.
+  if (mid.out) { const i = SC_ZONES.findIndex(z => z[0] === sc.pick); scSendPart({ ...d.parts[sc.pick], ch: (mid.ch + i) % 16 }, d.reverb); }
+  scPickDone();
+}
+if (mid.supported) {
+  $('#kb-tabs .kb-tab[data-mode="scenes"]').hidden = false;
+  for (const t of $$('#kb-tabs .kb-tab')) t.addEventListener('click', () => {
+    if (sc.pick != null) { sc.pick = null; $('#kb-pickbar').hidden = true; $('#kb-list').classList.remove('kb-picking'); }
+    scSetMode(t.dataset.mode);
+    if (t.dataset.mode === 'voices') kbRender();
+  });
+  $('#kb-pick-cancel').addEventListener('click', scPickDone);
 }
 
 kbChips();
