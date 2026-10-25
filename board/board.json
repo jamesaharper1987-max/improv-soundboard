@@ -1,0 +1,673 @@
+{
+ "app": "improv-soundboard",
+ "version": "2026-10-24a",
+ "sounds": [
+  {
+   "id": "b-rain",
+   "name": "Rain",
+   "category": "weather",
+   "file": "audio/rain.mp3",
+   "image": "img/rain.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-close-thunder",
+    "b-distant-thunder",
+    "b-dripping-water"
+   ],
+   "duration": 159.68,
+   "bytes": 6452544
+  },
+  {
+   "id": "b-close-thunder",
+   "name": "Close thunder",
+   "category": "weather",
+   "file": "audio/close-thunder.mp3",
+   "image": "img/close-thunder.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 15.32,
+   "bytes": 678144
+  },
+  {
+   "id": "b-distant-thunder",
+   "name": "Distant thunder",
+   "category": "weather",
+   "file": "audio/distant-thunder.mp3",
+   "image": "img/distant-thunder.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [
+    "b-close-thunder"
+   ],
+   "duration": 16.3,
+   "bytes": 717504
+  },
+  {
+   "id": "b-dripping-water",
+   "name": "Dripping water",
+   "category": "weather",
+   "file": "audio/dripping-water.mp3",
+   "image": "img/dripping-water.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 15.17,
+   "bytes": 672384
+  },
+  {
+   "id": "b-river-with-frogs",
+   "name": "River with frogs",
+   "category": "weather",
+   "file": "audio/river-with-frogs.mp3",
+   "image": "img/river-with-frogs.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-night-crickets",
+    "b-bees"
+   ],
+   "duration": 34.47,
+   "bytes": 1444224
+  },
+  {
+   "id": "b-shower",
+   "name": "Shower",
+   "category": "weather",
+   "file": "audio/shower.mp3",
+   "image": "img/shower.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-dripping-water"
+   ],
+   "duration": 239.49,
+   "bytes": 7729363
+  },
+  {
+   "id": "b-sprinkler",
+   "name": "Sprinkler",
+   "category": "weather",
+   "file": "audio/sprinkler.mp3",
+   "image": "img/sprinkler.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-lawn-mower",
+    "b-cicada"
+   ],
+   "duration": 167.47,
+   "bytes": 5424736
+  },
+  {
+   "id": "b-night-crickets",
+   "name": "Night crickets",
+   "category": "nature",
+   "file": "audio/night-crickets.mp3",
+   "image": "img/night-crickets.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-dogs-at-night",
+    "b-fire-crackling"
+   ],
+   "duration": 29.4,
+   "bytes": 1241664
+  },
+  {
+   "id": "b-dogs-at-night",
+   "name": "Dogs at night",
+   "category": "nature",
+   "file": "audio/dogs-at-night.mp3",
+   "image": "img/dogs-at-night.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-night-crickets",
+    "b-police-siren"
+   ],
+   "duration": 145.93,
+   "bytes": 3567744
+  },
+  {
+   "id": "b-fire-crackling",
+   "name": "Fire crackling",
+   "category": "nature",
+   "file": "audio/fire-crackling.mp3",
+   "image": "img/fire-crackling.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-night-crickets"
+   ],
+   "duration": 44.07,
+   "bytes": 1828224
+  },
+  {
+   "id": "b-cicada",
+   "name": "Cicada",
+   "category": "nature",
+   "file": "audio/cicada.mp3",
+   "image": "img/cicada.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 130.56,
+   "bytes": 4243584
+  },
+  {
+   "id": "b-bees",
+   "name": "Bees",
+   "category": "nature",
+   "file": "audio/bees.mp3",
+   "image": "img/bees.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 41.52,
+   "bytes": 830400
+  },
+  {
+   "id": "b-farm-ambience",
+   "name": "Farm ambience",
+   "category": "nature",
+   "file": "audio/farm-ambience.mp3",
+   "image": "img/farm-ambience.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-bees",
+    "b-cicada",
+    "b-dogs-at-night"
+   ],
+   "duration": 260.99,
+   "bytes": 8417324
+  },
+  {
+   "id": "b-lawn-mower",
+   "name": "Lawn mower",
+   "category": "nature",
+   "file": "audio/lawn-mower.mp3",
+   "image": "img/lawn-mower.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-sprinkler"
+   ],
+   "duration": 202.3,
+   "bytes": 6539015
+  },
+  {
+   "id": "b-city-street",
+   "name": "City street",
+   "category": "city",
+   "file": "audio/city-street.mp3",
+   "image": "img/city-street.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-traffic",
+    "b-police-siren",
+    "b-car-passing-by",
+    "b-jackhammer",
+    "b-car-crash"
+   ],
+   "duration": 268.8,
+   "bytes": 8667264
+  },
+  {
+   "id": "b-traffic",
+   "name": "Traffic",
+   "category": "city",
+   "file": "audio/traffic.mp3",
+   "image": "img/traffic.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-car-passing-by",
+    "b-police-siren",
+    "b-car-crash"
+   ],
+   "duration": 167.32,
+   "bytes": 4081206
+  },
+  {
+   "id": "b-car-passing-by",
+   "name": "Car passing by",
+   "category": "city",
+   "file": "audio/car-passing-by.mp3",
+   "image": "img/car-passing-by.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 6.89,
+   "bytes": 341184
+  },
+  {
+   "id": "b-car-crash",
+   "name": "Car crash",
+   "category": "city",
+   "file": "audio/car-crash.mp3",
+   "image": "img/car-crash.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [
+    "b-police-siren"
+   ],
+   "duration": 28.32,
+   "bytes": 1198464
+  },
+  {
+   "id": "b-police-siren",
+   "name": "Police siren",
+   "category": "city",
+   "file": "audio/police-siren.mp3",
+   "image": "img/police-siren.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 11.12,
+   "bytes": 510144
+  },
+  {
+   "id": "b-jackhammer",
+   "name": "Jackhammer",
+   "category": "city",
+   "file": "audio/jackhammer.mp3",
+   "image": "img/jackhammer.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 8.14,
+   "bytes": 391104
+  },
+  {
+   "id": "b-subway",
+   "name": "Subway",
+   "category": "city",
+   "file": "audio/subway.mp3",
+   "image": "img/subway.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 164.16,
+   "bytes": 5318575
+  },
+  {
+   "id": "b-distant-train",
+   "name": "Distant train",
+   "category": "city",
+   "file": "audio/distant-train.mp3",
+   "image": "img/distant-train.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 117.26,
+   "bytes": 2345280
+  },
+  {
+   "id": "b-airport-chime",
+   "name": "Airport chime",
+   "category": "city",
+   "file": "audio/airport-chime.mp3",
+   "image": "img/airport-chime.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 4.85,
+   "bytes": 259584
+  },
+  {
+   "id": "b-busy-restaurant",
+   "name": "Busy restaurant",
+   "category": "places",
+   "file": "audio/busy-restaurant.mp3",
+   "image": "img/busy-restaurant.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-kitchen-cooking",
+    "b-dropped-metal",
+    "b-shop-bell"
+   ],
+   "duration": 147.24,
+   "bytes": 5955264
+  },
+  {
+   "id": "b-kitchen-cooking",
+   "name": "Kitchen cooking",
+   "category": "places",
+   "file": "audio/kitchen-cooking.mp3",
+   "image": "img/kitchen-cooking.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-cooking-pasta",
+    "b-microwave"
+   ],
+   "duration": 106.48,
+   "bytes": 3472867
+  },
+  {
+   "id": "b-cooking-pasta",
+   "name": "Cooking pasta",
+   "category": "places",
+   "file": "audio/cooking-pasta.mp3",
+   "image": "img/cooking-pasta.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 44.33,
+   "bytes": 1838784
+  },
+  {
+   "id": "b-nightclub",
+   "name": "Nightclub",
+   "category": "places",
+   "file": "audio/nightclub.mp3",
+   "image": "img/nightclub.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 239.96,
+   "bytes": 7744410
+  },
+  {
+   "id": "b-bowling-alley",
+   "name": "Bowling alley",
+   "category": "places",
+   "file": "audio/bowling-alley.mp3",
+   "image": "img/bowling-alley.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 224.87,
+   "bytes": 7261249
+  },
+  {
+   "id": "b-prison",
+   "name": "Prison",
+   "category": "places",
+   "file": "audio/prison.mp3",
+   "image": "img/prison.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-cell-door",
+    "b-metal-chill",
+    "b-dropped-metal",
+    "b-security-alarm"
+   ],
+   "duration": 240.72,
+   "bytes": 7768651
+  },
+  {
+   "id": "b-cell-door",
+   "name": "Cell door",
+   "category": "places",
+   "file": "audio/cell-door.mp3",
+   "image": "img/cell-door.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 4.86,
+   "bytes": 221144
+  },
+  {
+   "id": "b-vacuum-cleaner",
+   "name": "Vacuum cleaner",
+   "category": "home",
+   "file": "audio/vacuum-cleaner.mp3",
+   "image": "img/vacuum-cleaner.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 25.08,
+   "bytes": 667525
+  },
+  {
+   "id": "b-fan",
+   "name": "Fan",
+   "category": "home",
+   "file": "audio/fan.mp3",
+   "image": "img/fan.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 219.67,
+   "bytes": 7094901
+  },
+  {
+   "id": "b-fridge-air-con",
+   "name": "Fridge / air con",
+   "category": "home",
+   "file": "audio/fridge-air-con.mp3",
+   "image": "img/fridge-air-con.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-microwave"
+   ],
+   "duration": 178.34,
+   "bytes": 5772478
+  },
+  {
+   "id": "b-microwave",
+   "name": "Microwave",
+   "category": "home",
+   "file": "audio/microwave.mp3",
+   "image": "img/microwave.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 172.86,
+   "bytes": 5596935
+  },
+  {
+   "id": "b-printer",
+   "name": "Printer",
+   "category": "home",
+   "file": "audio/printer.mp3",
+   "image": "img/printer.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 75.0,
+   "bytes": 2465585
+  },
+  {
+   "id": "b-mouse-clicks",
+   "name": "Mouse clicks",
+   "category": "home",
+   "file": "audio/mouse-clicks.mp3",
+   "image": "img/mouse-clicks.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 26.67,
+   "bytes": 1132224
+  },
+  {
+   "id": "b-fluorescent-light",
+   "name": "Fluorescent light",
+   "category": "home",
+   "file": "audio/fluorescent-light.mp3",
+   "image": "img/fluorescent-light.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-electricity",
+    "b-printer",
+    "b-mouse-clicks",
+    "b-horror-chill"
+   ],
+   "duration": 124.03,
+   "bytes": 4034604
+  },
+  {
+   "id": "b-incandescent-light",
+   "name": "Incandescent light",
+   "category": "home",
+   "file": "audio/incandescent-light.mp3",
+   "image": "img/incandescent-light.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-electricity"
+   ],
+   "duration": 178.0,
+   "bytes": 5761611
+  },
+  {
+   "id": "b-electricity",
+   "name": "Electricity",
+   "category": "home",
+   "file": "audio/electricity.mp3",
+   "image": "img/electricity.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-horror-chill"
+   ],
+   "duration": 60.9,
+   "bytes": 1527058
+  },
+  {
+   "id": "b-drill-next-door",
+   "name": "Drill next door",
+   "category": "home",
+   "file": "audio/drill-next-door.mp3",
+   "image": "img/drill-next-door.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 4.88,
+   "bytes": 260544
+  },
+  {
+   "id": "b-cat-meow",
+   "name": "Cat meow",
+   "category": "home",
+   "file": "audio/cat-meow.mp3",
+   "image": "img/cat-meow.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [
+    "b-cat-purr"
+   ],
+   "duration": 1.11,
+   "bytes": 109824
+  },
+  {
+   "id": "b-cat-purr",
+   "name": "Cat purr",
+   "category": "home",
+   "file": "audio/cat-purr.mp3",
+   "image": "img/cat-purr.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [],
+   "duration": 10.25,
+   "bytes": 475584
+  },
+  {
+   "id": "b-doorbell",
+   "name": "Doorbell",
+   "category": "bells",
+   "file": "audio/doorbell.mp3",
+   "image": "img/doorbell.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 2.88,
+   "bytes": 180864
+  },
+  {
+   "id": "b-shop-bell",
+   "name": "Shop bell",
+   "category": "bells",
+   "file": "audio/shop-bell.mp3",
+   "image": "img/shop-bell.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 6.84,
+   "bytes": 339264
+  },
+  {
+   "id": "b-security-alarm",
+   "name": "Security alarm",
+   "category": "bells",
+   "file": "audio/security-alarm.mp3",
+   "image": "img/security-alarm.svg",
+   "loop": true,
+   "volume": 0.6,
+   "links": [
+    "b-police-siren"
+   ],
+   "duration": 9.92,
+   "bytes": 462144
+  },
+  {
+   "id": "b-horror-chill",
+   "name": "Horror chill",
+   "category": "stings",
+   "file": "audio/horror-chill.mp3",
+   "image": "img/horror-chill.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 5.07,
+   "bytes": 187290
+  },
+  {
+   "id": "b-metal-chill",
+   "name": "Metal chill",
+   "category": "stings",
+   "file": "audio/metal-chill.mp3",
+   "image": "img/metal-chill.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 1.94,
+   "bytes": 112057
+  },
+  {
+   "id": "b-dropped-metal",
+   "name": "Dropped metal",
+   "category": "stings",
+   "file": "audio/dropped-metal.mp3",
+   "image": "img/dropped-metal.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 1.76,
+   "bytes": 107668
+  },
+  {
+   "id": "b-cocking-gun",
+   "name": "Cocking gun",
+   "category": "stings",
+   "file": "audio/cocking-gun.mp3",
+   "image": "img/cocking-gun.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 1.65,
+   "bytes": 105161
+  },
+  {
+   "id": "b-sad-trombone",
+   "name": "Sad trombone",
+   "category": "stings",
+   "file": "audio/sad-trombone.mp3",
+   "image": "img/sad-trombone.svg",
+   "loop": false,
+   "volume": 0.85,
+   "links": [],
+   "duration": 4.58,
+   "bytes": 175378
+  }
+ ]
+}

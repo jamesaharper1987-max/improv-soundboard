@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#111318">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Soundboard">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
+<title>Improv Soundboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@700;800&display=swap">
+<style>
+/* Layout: a sticky stage bar, a grid of cue tiles that light up like lighting gels when live
+   (amber for one-shots, cyan for loops), and a strip of related cues docked at the bottom.
+   Deliberately dark-only: it is used side-stage with the house lights down. */
+:root{
+  --house:#111318; --deck:#1a1d24; --deck-2:#232731; --deck-3:#2d323e; --rule:#363c49;
+  --ink:#f1ece2; --ink-dim:#a0a6b3; --ink-faint:#6b7180;
+  --live:#ffb04a; --live-ink:#1d1405; --live-glow:rgba(255,176,74,.45); --live-ring:rgba(255,176,74,.18);
+  --loop:#5fc4d8; --loop-glow:rgba(95,196,216,.42);
+  --danger:#ff7a6b; --scrim:rgba(10,11,15,.74); --chip-bg:rgba(10,11,15,.72); --shadow:rgba(0,0,0,.45);
+  --f-display:"Big Shoulders Display","Oswald","Arial Narrow",sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{
+  background:var(--house); color:var(--ink); font-family:var(--f-body); font-size:16px; line-height:1.4;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--house)}
+button,input,label{touch-action:manipulation}
+input[type=text]{-webkit-user-select:text;user-select:text}
+:focus-visible{outline:3px solid var(--loop);outline-offset:2px}
+
+/* ---------- stage bar ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--house);padding-block:14px 12px;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:12px}
+.bar-main{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px}
+.brand{flex:1 1 220px;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:2.1rem;line-height:1;letter-spacing:.03em;text-transform:uppercase;margin:0;text-wrap:balance}
+.brand p{margin:5px 0 0;color:var(--ink-dim);font-size:.92rem;font-variant-numeric:tabular-nums}
+.brand p b{color:var(--live);font-weight:700}
+.actions,.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:700 1rem/1 var(--f-body);min-height:48px;padding:0 18px;border-radius:12px;border:1.5px solid var(--rule);background:var(--deck-2);color:var(--ink);cursor:pointer}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.38;cursor:default}
+.btn-stop{border-color:var(--danger);color:var(--danger);background:transparent;min-width:120px}
+.btn-on{background:var(--ink);color:var(--house);border-color:var(--ink)}
+.btn-primary{background:var(--live);color:var(--live-ink);border-color:var(--live)}
+.btn-quiet{background:transparent}
+.btn-danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.tools .hint{color:var(--ink-dim);font-size:.9rem;margin-left:4px}
+.warn{border:1.5px solid var(--danger);color:var(--ink);background:var(--deck);border-radius:12px;padding:10px 14px;font-size:.92rem}
+
+/* ---------- cue grid ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding-block:14px 32px}
+.sect{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding-top:10px;font:700 .74rem/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+.sect:first-child{padding-top:2px}
+.sect i{width:10px;height:10px;border-radius:3px;background:var(--sect,var(--ink-faint))}
+.sect::after{content:"";flex:1;height:1px;background:var(--rule)}
+body.has-related .grid{padding-bottom:220px}
+.tile{--hot:var(--live);--glow:var(--live-glow);background:var(--deck);border-radius:var(--r);border:2px solid var(--deck);display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s,box-shadow .15s;min-width:0}
+.tile.is-loop,.mini.is-loop{--hot:var(--loop);--glow:var(--loop-glow)}
+.tile.playing{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot),0 0 34px -2px var(--glow)}
+.tile.broken .art{opacity:.4}
+.hit{all:unset;box-sizing:border-box;display:block;cursor:pointer;position:relative}
+.hit:focus-visible{outline:3px solid var(--loop);outline-offset:-3px}
+.art{display:block;aspect-ratio:3/2;max-width:100%;position:relative;background:var(--deck-3);overflow:hidden}
+.art img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.initials{display:grid;place-items:center;width:100%;height:100%;font-family:var(--f-display);font-weight:800;font-size:3.2rem;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
+.chip{position:absolute;bottom:11px;font:700 .64rem/1 var(--f-body);letter-spacing:.07em;text-transform:uppercase;padding:4px 6px;border-radius:5px;background:var(--chip-bg)}
+.chip-loop{left:8px;color:var(--loop)}
+.chip-links{right:8px;color:var(--ink)}
+.chip-err{left:8px;color:var(--danger)}
+.prog{position:absolute;left:0;right:0;bottom:0;height:6px;opacity:0;background:var(--chip-bg)}
+.playing .prog{opacity:1}
+.prog i{display:block;height:100%;background:var(--hot);transform-origin:left center;transform:scaleX(var(--p,0))}
+.name{display:flex;align-items:flex-start;gap:8px;padding:9px 12px 0;font-weight:700;font-size:1rem;line-height:1.2;min-height:calc(2.4em + 9px)}
+.name span{min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.dot{flex:none;width:9px;height:9px;margin-top:.36em;border-radius:50%;background:var(--ink-faint)}
+.playing .dot{background:var(--hot);box-shadow:0 0 10px var(--hot)}
+.vol{display:flex;align-items:center;gap:10px;padding:2px 12px 10px}
+.vol output{flex:none;width:3.2ch;text-align:right;font-size:.85rem;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+.editing .hit::after{content:"Edit";position:absolute;right:8px;bottom:8px;font:700 .8rem/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;padding:8px 11px;border-radius:8px;background:var(--ink);color:var(--house)}
+.tile-add{border:2px dashed var(--rule);background:transparent;border-radius:var(--r);min-height:220px;color:var(--ink-dim);font:700 1.1rem/1.2 var(--f-body);cursor:pointer;display:grid;place-items:center;gap:6px}
+.tile-add b{display:block;font-family:var(--f-display);font-size:3rem;line-height:1;color:var(--live)}
+
+/* sliders */
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:36px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to right,var(--ink-dim) var(--fill,50%),var(--deck-3) var(--fill,50%))}
+input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:var(--deck-3)}
+input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:var(--ink-dim)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--ink);border:3px solid var(--deck);margin-top:-9px;box-shadow:0 1px 4px var(--shadow)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ink);border:3px solid var(--deck)}
+
+/* ---------- related strip ---------- */
+.related{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--deck-2);border-top:2px solid var(--live);box-shadow:0 -14px 30px var(--shadow);padding-top:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.related h2{margin:0 0 8px;font:700 .72rem/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--live)}
+.rinner{display:flex;gap:22px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.rgroup{flex:none;display:flex;flex-direction:column;gap:6px}
+.rlabel{font-size:.8rem;color:var(--ink-dim)}
+.rlabel b{color:var(--ink)}
+.rrow{display:flex;gap:10px}
+.mini{--hot:var(--live);all:unset;box-sizing:border-box;flex:none;width:138px;border-radius:12px;background:var(--deck-3);border:2px solid var(--deck-3);overflow:hidden;cursor:pointer;position:relative}
+.mini .art{aspect-ratio:16/10}
+.mini .initials{font-size:2rem}
+.mini .mname{display:block;padding:7px 9px;font-weight:700;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini.playing{border-color:var(--hot);box-shadow:0 0 18px -2px var(--hot)}
+.mini:focus-visible{outline:3px solid var(--loop);outline-offset:2px}
+
+/* ---------- GO overlay ---------- */
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:24px max(24px,env(safe-area-inset-right,0px)) 24px max(24px,env(safe-area-inset-left,0px))}
+.overlay-card{max-width:420px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.go{width:176px;height:176px;border-radius:50%;border:none;cursor:pointer;background:var(--live);color:var(--live-ink);font-family:var(--f-display);font-weight:800;font-size:3.6rem;letter-spacing:.04em;box-shadow:0 0 0 12px var(--live-ring),0 0 70px var(--live-glow)}
+.go:disabled{opacity:.6}
+.overlay h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.7rem;text-transform:uppercase;letter-spacing:.04em}
+.overlay p{margin:0;color:var(--ink-dim);max-width:36ch}
+.overlay .status{color:var(--ink);font-variant-numeric:tabular-nums;min-height:1.4em}
+
+/* ---------- editor ---------- */
+dialog{background:var(--deck);color:var(--ink);border:1px solid var(--rule);border-radius:18px;padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:hidden}
+dialog[open]{display:flex;flex-direction:column}
+dialog::backdrop{background:var(--scrim)}
+.ed-head{padding:18px 20px 0}
+.ed-head h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.7rem;text-transform:uppercase;letter-spacing:.03em}
+.ed-body{padding:16px 20px 20px;overflow:auto;display:flex;flex-direction:column;gap:20px}
+.field{display:flex;flex-direction:column;gap:8px}
+.field > .lbl{font-size:.78rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-dim)}
+.field .help{font-size:.88rem;color:var(--ink-dim);margin:0}
+.txt{font:400 1.05rem/1 var(--f-body);min-height:48px;padding:0 14px;border-radius:10px;border:1.5px solid var(--rule);background:var(--deck-2);color:var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.fileinfo{font-size:.95rem;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pic{width:112px;max-width:100%;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:var(--deck-3);flex:none}
+.pic .initials{font-size:2rem}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
+.switch{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700}
+.switch input{-webkit-appearance:none;appearance:none;flex:none;width:54px;height:32px;border-radius:16px;background:var(--deck-3);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--ink);transition:transform .15s}
+.switch input:checked{background:var(--loop)}
+.switch input:checked::after{transform:translateX(22px)}
+.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.links label{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:10px;background:var(--deck-2);cursor:pointer;font-weight:700;min-width:0}
+.links label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.links input{width:20px;height:20px;accent-color:var(--live);flex:none}
+.links .none{color:var(--ink-dim);font-size:.92rem}
+.ed-foot{display:flex;flex-wrap:wrap;gap:10px;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule);background:var(--deck)}
+.ed-foot .spacer{flex:1}
+.error{color:var(--danger);font-weight:700;margin:0}
+
+/* ---------- toast / confirm ---------- */
+.toast,.confirm{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--house);border-radius:12px;padding:12px 16px;font-weight:700;box-shadow:0 10px 30px var(--shadow);max-width:calc(100vw - 32px)}
+body.has-related .toast,body.has-related .confirm{bottom:calc(200px + env(safe-area-inset-bottom,0px))}
+.confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;width:max-content}
+.confirm p{margin:0;flex:1 1 220px}
+.confirm .btn{min-height:42px}
+.confirm .btn-quiet{color:var(--house);border-color:var(--house)}
+
+@media (max-width:520px){
+  .brand h1{font-size:1.7rem}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .btn{padding:0 14px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-main">
+    <div class="brand">
+      <h1>Improv Soundboard</h1>
+      <p id="status-line">Loading board…</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="edit-toggle" type="button" aria-pressed="false">Edit board</button>
+      <button class="btn btn-stop" id="stop-all" type="button" disabled>Stop all</button>
+    </div>
+  </div>
+  <div class="tools" id="edit-tools" hidden>
+    <button class="btn btn-primary" id="add-sound" type="button">Add sound</button>
+    <button class="btn" id="export-board" type="button">Back up board</button>
+    <label class="btn" for="import-file" style="display:inline-flex;align-items:center">Restore backup</label>
+    <input class="vh" type="file" id="import-file" accept=".json,application/json">
+    <span class="hint">Tap a tile to change it.</span>
+  </div>
+  <div class="warn" id="storage-warn" hidden>This browser isn't letting the board save, so sounds you add will be gone when you close it. Use “Back up board” before closing.</div>
+</header>
+
+<main class="grid" id="board" aria-label="Sounds"></main>
+
+<section class="related" id="related" hidden aria-label="Related sounds">
+  <h2>Related sounds</h2>
+  <div class="rinner" id="related-inner"></div>
+</section>
+
+<div class="overlay" id="start-overlay">
+  <div class="overlay-card">
+    <button class="go" id="go" type="button" aria-describedby="go-help">GO</button>
+    <h2>Start the show</h2>
+    <p id="go-help">Loads the short sounds into memory so they fire instantly, and keeps the screen awake. Long ambiences play straight from storage.</p>
+    <p class="status" id="go-status" aria-live="polite"></p>
+  </div>
+</div>
+
+<dialog id="editor" aria-labelledby="ed-title">
+  <div class="ed-head"><h2 id="ed-title">Edit sound</h2></div>
+  <div class="ed-body">
+    <div class="field">
+      <label class="lbl" for="ed-name">Name</label>
+      <input class="txt" type="text" id="ed-name" maxlength="40" autocomplete="off" placeholder="e.g. Rain">
+    </div>
+    <div class="field">
+      <span class="lbl">Sound file</span>
+      <div class="row">
+        <label class="btn" for="ed-audio" style="display:inline-flex;align-items:center">Choose file</label>
+        <input class="vh" type="file" id="ed-audio" accept="audio/*,.mp3,.m4a,.wav,.aac,.aif,.aiff,.caf,.ogg,.flac">
+        <span class="fileinfo" id="ed-audio-info">No file chosen</span>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl">Picture</span>
+      <div class="row">
+        <div class="pic" id="ed-pic"></div>
+        <label class="btn" for="ed-image" style="display:inline-flex;align-items:center">Choose picture</label>
+        <input class="vh" type="file" id="ed-image" accept="image/*">
+        <button class="btn btn-quiet" type="button" id="ed-img-remove">Remove</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl" for="ed-volume">Volume</label>
+      <div class="vol" style="padding:0"><input type="range" id="ed-volume" min="0" max="100" step="1"><output id="ed-volume-out" for="ed-volume">80</output></div>
+    </div>
+    <div class="field">
+      <label class="switch" for="ed-loop"><input type="checkbox" id="ed-loop">Loop continuously</label>
+      <p class="help">Before the clip ends, a fresh copy starts underneath and they crossfade over 10 seconds, so clips that start quiet still sound unbroken.</p>
+    </div>
+    <div class="field">
+      <span class="lbl">Related sounds</span>
+      <p class="help">These appear in a strip at the bottom while this sound plays.</p>
+      <div class="links" id="ed-links"></div>
+    </div>
+    <div class="field" id="ed-pos-field">
+      <span class="lbl">Position on board</span>
+      <div class="row">
+        <button class="btn" type="button" id="ed-earlier">Move earlier</button>
+        <button class="btn" type="button" id="ed-later">Move later</button>
+      </div>
+    </div>
+    <p class="error" id="ed-error" role="alert" hidden></p>
+  </div>
+  <div class="ed-foot">
+    <button class="btn btn-danger" type="button" id="ed-delete">Delete</button>
+    <span class="spacer"></span>
+    <button class="btn btn-quiet" type="button" id="ed-cancel">Cancel</button>
+    <button class="btn btn-primary" type="button" id="ed-save">Save</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="confirm" id="confirm" hidden>
+  <p id="confirm-text"></p>
+  <button class="btn btn-quiet" type="button" id="confirm-no">Cancel</button>
+  <button class="btn btn-primary" type="button" id="confirm-yes">Replace board</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) { if (c == null || c === false) continue; el.append(c instanceof Node ? c : String(c)); }
+  return el;
+}
+
+/* ================= storage (on this device) ================= */
+const store = {
+  db: null, ok: false,
+  async open() {
+    try {
+      if (!('indexedDB' in window)) throw new Error('none');
+      this.db = await new Promise((res, rej) => {
+        const req = indexedDB.open('improv-soundboard', 1);
+        req.onupgradeneeded = () => {
+          const d = req.result;
+          if (!d.objectStoreNames.contains('sounds')) d.createObjectStore('sounds', { keyPath: 'id' });
+          if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+        };
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+        req.onblocked = () => rej(new Error('blocked'));
+      });
+      this.ok = true;
+    } catch { this.ok = false; }
+    return this.ok;
+  },
+  tx(name, mode, fn) {
+    if (!this.ok) return Promise.resolve(null);
+    return new Promise((res, rej) => {
+      try {
+        const t = this.db.transaction(name, mode);
+        const r = fn(t.objectStore(name));
+        t.oncomplete = () => res(r && 'result' in r ? r.result : null);
+        t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+      } catch (e) { rej(e); }
+    });
+  },
+  all() { return this.tx('sounds', 'readonly', s => s.getAll()).then(r => r || []); },
+  put(rec) { return this.tx('sounds', 'readwrite', s => s.put(rec)); },
+  del(id) { return this.tx('sounds', 'readwrite', s => s.delete(id)); },
+  clear() { return this.tx('sounds', 'readwrite', s => s.clear()); },
+  getMeta(k) { return this.tx('meta', 'readonly', s => s.get(k)); },
+  setMeta(k, v) { return this.tx('meta', 'readwrite', s => s.put(v, k)); },
+};
+const record = s => ({ id: s.id, name: s.name, order: s.order, volume: s.volume, loop: s.loop, links: s.links, demo: s.demo || null, audio: s.audio || null, image: s.image || null,
+  duration: s.duration || 0, category: s.category || null, bundleFile: s.bundleFile || null, bundleImage: s.bundleImage || null });
+const fromRecord = (r, i) => ({
+  id: String(r.id), name: r.name || 'Sound', order: Number.isFinite(r.order) ? r.order : i,
+  volume: typeof r.volume === 'number' ? r.volume : .8, loop: !!r.loop, links: Array.isArray(r.links) ? r.links.map(String) : [],
+  demo: r.demo || null, audio: r.audio || null, image: r.image || null, duration: +r.duration || 0,
+  category: r.category || null, bundleFile: r.bundleFile || null, bundleImage: r.bundleImage || null,
+});
+async function persist(s) {
+  try { await store.put(record(s)); } catch { toast("Couldn't save that change on this device."); }
+}
+
+/* ================= example sounds ================= */
+const svg = body => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 120'>${body}</svg>`);
+const cloud = fill => `<g fill='${fill}'><circle cx='62' cy='50' r='18'/><circle cx='88' cy='41' r='23'/><circle cx='111' cy='53' r='14'/><rect x='45' y='50' width='80' height='18' rx='9'/></g>`;
+const DEMO_ART = {
+  rain: svg(`<rect width='160' height='120' fill='#1c3450'/><g stroke='#86b8ea' stroke-width='3' stroke-linecap='round'><path d='M52 76l-7 14M70 78l-7 14M88 76l-7 14M106 78l-7 14M61 98l-5 10M97 98l-5 10M79 100l-5 10'/></g>${cloud('#cfdbe9')}`),
+  lightning: svg(`<rect width='160' height='120' fill='#241e3a'/>${cloud('#4b4270')}<path d='M88 56L70 86h15l-9 26 30-36H91l9-20z' fill='#ffd45c'/>`),
+  wind: svg(`<rect width='160' height='120' fill='#22423d'/><g fill='none' stroke='#bfe6d8' stroke-width='5' stroke-linecap='round'><path d='M28 48h70a13 13 0 1 0-13-13'/><path d='M28 66h88a13 13 0 1 1-13 13'/><path d='M40 84h38'/></g>`),
+  vacuum: svg(`<rect width='160' height='120' fill='#47292a'/><path d='M74 70c26-14 34-38 46-38l6 56' fill='none' stroke='#e9b7a3' stroke-width='6' stroke-linecap='round'/><rect x='112' y='86' width='34' height='9' rx='3' fill='#e9b7a3'/><rect x='28' y='58' width='52' height='36' rx='16' fill='#e9b7a3'/><circle cx='40' cy='96' r='6' fill='#2a1717'/><circle cx='68' cy='96' r='6' fill='#2a1717'/><g stroke='#ffcf9e' stroke-width='3' stroke-linecap='round'><path d='M18 64h-6M20 76h-9M18 88h-6'/></g>`),
+  doorbell: svg(`<rect width='160' height='120' fill='#3a3120'/><path d='M80 26c-18 0-28 14-28 32v16l-9 11h74l-9-11V58c0-18-10-32-28-32z' fill='#f0c46a'/><circle cx='80' cy='94' r='7' fill='#f0c46a'/><g fill='none' stroke='#f0c46a' stroke-width='3' stroke-linecap='round' opacity='.7'><path d='M40 40a46 46 0 0 0-6 26M120 40a46 46 0 0 1 6 26'/></g>`),
+  applause: svg(`<rect width='160' height='120' fill='#3a2236'/><g stroke='#f3a0cf' stroke-width='4' stroke-linecap='round'><path d='M80 24v14M80 82v14M44 60h14M102 60h14M55 35l10 10M95 75l10 10M105 35l-10 10M65 75l-10 10'/></g><circle cx='80' cy='60' r='12' fill='#f3a0cf'/>`),
+};
+const DEMOS = [
+  { id: 'demo-rain', name: 'Rain', demo: 'rain', loop: true, volume: 0.7, links: ['demo-lightning', 'demo-wind'] },
+  { id: 'demo-lightning', name: 'Lightning', demo: 'lightning', loop: false, volume: 0.9, links: [] },
+  { id: 'demo-wind', name: 'Wind', demo: 'wind', loop: true, volume: 0.6, links: ['demo-lightning'] },
+  { id: 'demo-vacuum', name: 'Vacuum cleaner', demo: 'vacuum', loop: true, volume: 0.6, links: [] },
+  { id: 'demo-doorbell', name: 'Doorbell', demo: 'doorbell', loop: false, volume: 0.8, links: [] },
+  { id: 'demo-applause', name: 'Applause', demo: 'applause', loop: false, volume: 0.8, links: [] },
+];
+
+// Built-in example sounds are synthesised on the device, so the board works before any files are added.
+let seed = 1;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const noise = () => rnd() * 2 - 1;
+function normalise(buf, peak = 0.8) {
+  let m = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) { const a = Math.abs(d[i]); if (a > m) m = a; } }
+  if (m > 0) { const k = peak / m; for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= k; } }
+  return buf;
+}
+function makeBuf(sec, fill) {
+  const sr = ctx.sampleRate, n = Math.floor(sec * sr);
+  const b = ctx.createBuffer(2, n, sr);
+  [b.getChannelData(0), b.getChannelData(1)].forEach((ch, c) => { seed = 7919 * (c + 3); fill(ch, n, sr); });
+  return normalise(b);
+}
+const SYNTH = {
+  rain: () => makeBuf(24, (ch, n, sr) => {
+    let b0 = 0, b1 = 0, b2 = 0, lp = 0;
+    for (let i = 0; i < n; i++) {
+      const w = noise();
+      b0 = .99765 * b0 + w * .099; b1 = .963 * b1 + w * .2965; b2 = .57 * b2 + w * 1.0526;
+      const pink = b0 + b1 + b2 + w * .1848; lp += (pink - lp) * .08; ch[i] = (pink - lp) * .25;
+    }
+    const drops = Math.floor(n / sr * 60), len = Math.floor(sr * .008);
+    for (let d = 0; d < drops; d++) {
+      const at = Math.floor(rnd() * (n - len)), a = .15 + rnd() * .4;
+      for (let k = 0; k < len; k++) ch[at + k] += a * noise() * Math.exp(-k / (sr * .0015));
+    }
+  }),
+  wind: () => makeBuf(24, (ch, n, sr) => {
+    let l1 = 0, l2 = 0; const off = rnd() * 6;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const m = .5 + .3 * Math.sin(2 * Math.PI * t / 8 + off) + .2 * Math.sin(2 * Math.PI * t / 3.2 + off * 2);
+      const k = .002 + .025 * m * m;
+      l1 += (noise() - l1) * k; l2 += (l1 - l2) * k;
+      ch[i] = l2 * (.3 + .7 * m);
+    }
+  }),
+  lightning: () => makeBuf(7, (ch, n, sr) => {
+    let lp = 0, br = 0, r1 = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, w = noise();
+      lp += (w - lp) * .2;
+      const crack = (w - lp) * Math.exp(-t / .06) * 1.6;
+      br = (br + w * .02) * .999; r1 += (br - r1) * .04;
+      const env = (1 - Math.exp(-t / .12)) * Math.exp(-t / 2.1) + .7 * Math.exp(-((t - 1.7) ** 2) / .35);
+      ch[i] = crack + r1 * env * 9;
+    }
+  }),
+  vacuum: () => makeBuf(18, (ch, n, sr) => {
+    let ph = 0, nl = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      if (t < 2) { ch[i] = 0; continue; }
+      const r = Math.min(1, (t - 2) / 3), e = r * r * (3 - 2 * r);
+      const f = 45 + 150 * e + 2.5 * Math.sin(2 * Math.PI * t * .7);
+      ph += 2 * Math.PI * f / sr;
+      let tone = 0; for (let k = 1; k <= 6; k++) tone += Math.sin(ph * k) / k;
+      nl += (noise() - nl) * (.02 + .3 * e);
+      ch[i] = e * (tone * .3 + nl * 1.3);
+    }
+  }),
+  doorbell: () => makeBuf(3.4, (ch, n, sr) => {
+    const ding = (t, f) => t < 0 ? 0 : Math.min(1, t / .004) * Math.exp(-t / .9) *
+      (Math.sin(2 * Math.PI * f * t) + .35 * Math.sin(2 * Math.PI * 2.01 * f * t) + .15 * Math.sin(2 * Math.PI * 3.02 * f * t));
+    for (let i = 0; i < n; i++) { const t = i / sr; ch[i] = ding(t, 659.25) + ding(t - .7, 523.25); }
+  }),
+  applause: () => makeBuf(6, (ch, n, sr) => {
+    let wash = 0;
+    for (let i = 0; i < n; i++) { const d = Math.pow(Math.sin(Math.PI * i / n), .6); wash += (noise() - wash) * .3; ch[i] = wash * .06 * d; }
+    const len = Math.floor(sr * .03);
+    for (let k = 0; k < 340; k++) {
+      const at = Math.floor(rnd() * (n - len));
+      if (rnd() > Math.pow(Math.sin(Math.PI * at / n), .6)) continue;
+      const a = .25 + rnd() * .75; let prev = 0;
+      for (let j = 0; j < len; j++) { const w = noise(); const x = w - prev * .7; prev = w; ch[at + j] += a * x * Math.exp(-j / (sr * .005)); }
+    }
+  }),
+};
+
+/* ================= state ================= */
+let sounds = [];
+const buffers = new Map();       // id -> AudioBuffer
+const failed = new Set();        // ids whose audio could not be read
+const imgCache = new Map();      // id -> {blob, url}
+const playing = new Map();       // id -> voice
+let ctx = null, master = null, started = false, editMode = false, raf = 0, wake = null;
+const byId = id => sounds.find(s => s.id === id);
+const sorted = () => [...sounds].sort((a, b) => a.order - b.order);
+const newId = () => 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const GELS = ['#6e3446', '#36557a', '#46653f', '#7a5628', '#56457a', '#2c6466', '#7a4330', '#5d5a2a'];
+function gel(s) { let h = 0; for (const c of s.id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return GELS[h % GELS.length]; }
+function initials(name) { const w = (name || '?').trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase(); }
+function imageURL(s) {
+  if (s.image) {
+    const c = imgCache.get(s.id);
+    if (c && c.blob === s.image) return c.url;
+    if (c) URL.revokeObjectURL(c.url);
+    const url = URL.createObjectURL(s.image); imgCache.set(s.id, { blob: s.image, url }); return url;
+  }
+  const c = imgCache.get(s.id); if (c) { URL.revokeObjectURL(c.url); imgCache.delete(s.id); }
+  return s.demo ? DEMO_ART[s.demo] : null;
+}
+function artEl(s, src) {
+  const url = src !== undefined ? src : imageURL(s);
+  return h('span', { class: 'art' },
+    url ? h('img', { src: url, alt: '', draggable: 'false' }) : h('span', { class: 'initials', style: `background:${gel(s)}` }, initials(s.name)),
+    h('span', { class: 'prog' }, h('i')));
+}
+const fmtTime = sec => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+
+/* ================= audio engine ================= */
+const CURVE = 64;
+const fadeIn = new Float32Array(CURVE).map((_, i) => Math.sin(i / (CURVE - 1) * Math.PI / 2));
+const fadeOut = new Float32Array(CURVE).map((_, i) => Math.cos(i / (CURVE - 1) * Math.PI / 2));
+const CROSSFADE = 10;
+
+async function ensureAudio() {
+  if (!ctx) {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+    const AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC({ latencyHint: 'interactive' });
+    master = ctx.createGain();
+    const limiter = ctx.createDynamicsCompressor(); // keeps layered sounds from clipping
+    limiter.threshold.value = -4; limiter.knee.value = 4; limiter.ratio.value = 8;
+    limiter.attack.value = .003; limiter.release.value = .2;
+    master.connect(limiter).connect(ctx.destination);
+  }
+  if (ctx.state !== 'running') { try { await ctx.resume(); } catch {} }
+}
+async function loadBuffer(s) {
+  if (s.audio) return await ctx.decodeAudioData(await s.audio.arrayBuffer());
+  if (s.demo && SYNTH[s.demo]) return SYNTH[s.demo]();
+  throw new Error('no audio');
+}
+
+/* ---- long clips stream from storage through <audio> elements, so an hour of ambience doesn't sit in memory ---- */
+const STREAM_MIN = 40;               // seconds; longer clips stream, shorter ones are preloaded
+const isStream = s => !!s.audio && (s.duration || 0) > STREAM_MIN;
+const pool = [];                     // {el, node, busy}
+const urls = new Map();              // id -> {blob, url}
+function audioURL(s) {
+  const c = urls.get(s.id);
+  if (c && c.blob === s.audio) return c.url;
+  if (c) URL.revokeObjectURL(c.url);
+  const url = URL.createObjectURL(s.audio); urls.set(s.id, { blob: s.audio, url }); return url;
+}
+let silentURL = null;
+function silence() {
+  if (silentURL) return silentURL;
+  const n = 800, b = new Uint8Array(44 + n), dv = new DataView(b.buffer);
+  const w = (o, s) => [...s].forEach((c, i) => b[o + i] = c.charCodeAt(0));
+  w(0, 'RIFF'); dv.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, 8000, true); dv.setUint32(28, 8000, true); dv.setUint16(32, 1, true); dv.setUint16(34, 8, true); w(36, 'data'); dv.setUint32(40, n, true);
+  b.fill(128, 44);
+  return silentURL = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+}
+function makeEl() {
+  const el = new Audio(); el.preload = 'auto'; el.playsInline = true; el.setAttribute('playsinline', '');
+  const p = { el, node: ctx.createMediaElementSource(el), busy: false };
+  pool.push(p); return p;
+}
+// Must run inside the GO tap: iPads only let an <audio> element play later if it first played during a tap.
+function unlockPool(n) {
+  while (pool.length < n) {
+    const p = makeEl(); p.el.src = silence(); p.el.muted = true;
+    const pr = p.el.play(); if (pr) pr.then(() => { p.el.pause(); p.el.muted = false; }).catch(() => { p.el.muted = false; });
+  }
+}
+function takeEl() { const p = pool.find(x => !x.busy) || makeEl(); p.busy = true; return p; }
+function releaseEl(p) { try { p.el.pause(); } catch {} try { p.node.disconnect(); } catch {} p.el.onended = null; p.el.onerror = null; p.busy = false; }
+
+function streamStart(s) {
+  const out = ctx.createGain(); out.gain.value = s.volume; out.connect(master);
+  const v = { id: s.id, out, copies: [], loop: s.loop, dur: s.duration, startedAt: ctx.currentTime, timer: 0, stopped: false, stream: true };
+  v.X = Math.min(CROSSFADE, s.duration * .45);
+  playing.set(s.id, v);
+  streamCopy(v, s, true);
+}
+function streamCopy(v, s, full) {
+  if (v.stopped || !s.audio) return;
+  const p = takeEl(), g = ctx.createGain(), now = ctx.currentTime;
+  p.node.connect(g).connect(v.out);
+  if (full) g.gain.setValueAtTime(1, now);
+  else { g.gain.setValueAtTime(0, now); g.gain.setValueCurveAtTime(fadeIn, now + .005, v.X); }
+  const copy = { p, g, el: p.el, handed: false, t: now };
+  v.copies.push(copy);
+  p.el.src = audioURL(s);
+  p.el.onended = () => {
+    if (v.loop && !copy.handed && !v.stopped) { copy.handed = true; streamCopy(v, s, true); }
+    dropCopy(v, copy);
+    if (!v.loop && playing.get(v.id) === v) { playing.delete(v.id); try { v.out.disconnect(); } catch {} refreshPlaying(); }
+  };
+  p.el.onerror = () => {
+    dropCopy(v, copy);
+    if (!v.copies.length && playing.get(v.id) === v) {
+      playing.delete(v.id); failed.add(v.id); refreshPlaying(); renderBoard();
+      toast(`“${s.name}” couldn't be played. Edit it and choose the file again.`);
+    }
+  };
+  const pr = p.el.play();
+  if (pr) pr.catch(() => p.el.onerror && p.el.onerror());
+}
+function dropCopy(v, copy) { v.copies = v.copies.filter(c => c !== copy); releaseEl(copy.p); try { copy.g.disconnect(); } catch {} }
+// Hand each looping stream over to a fresh copy X seconds before it ends; the two crossfade (equal power).
+setInterval(() => {
+  if (!ctx) return;
+  for (const v of playing.values()) {
+    if (!v.stream || !v.loop || v.stopped) continue;
+    const c = v.copies[v.copies.length - 1]; if (!c || c.handed) continue;
+    const D = isFinite(c.el.duration) && c.el.duration > 0 ? c.el.duration : v.dur;
+    if (c.el.currentTime >= D - v.X - .15) {
+      c.handed = true;
+      const now = ctx.currentTime;
+      try { c.g.gain.cancelScheduledValues(now); c.g.gain.setValueAtTime(c.g.gain.value, now); c.g.gain.setValueCurveAtTime(fadeOut, now + .005, v.X); }
+      catch { c.g.gain.linearRampToValueAtTime(0, now + v.X); }
+      setTimeout(() => { if (v.copies.includes(c)) dropCopy(v, c); }, (v.X + .4) * 1000);
+      streamCopy(v, byId(v.id) || { audio: null }, false);
+    }
+  }
+}, 100);
+
+function voiceStart(s) {
+  if (isStream(s)) return streamStart(s);
+  const buf = buffers.get(s.id); if (!buf) return;
+  const out = ctx.createGain(); out.gain.value = s.volume; out.connect(master);
+  const v = { id: s.id, out, copies: [], loop: s.loop, dur: buf.duration, startedAt: ctx.currentTime, timer: 0, stopped: false };
+  playing.set(s.id, v);
+  if (s.loop && buf.duration >= 1) {
+    v.X = Math.min(CROSSFADE, buf.duration * .45);
+    scheduleCopy(v, buf, ctx.currentTime + .005, true);
+  } else {
+    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = !!s.loop;
+    src.connect(out); src.start();
+    const copy = { src, t: ctx.currentTime }; v.copies.push(copy);
+    src.onended = () => { if (playing.get(s.id) === v) { playing.delete(s.id); try { out.disconnect(); } catch {} refreshPlaying(); } };
+  }
+}
+// Each loop copy starts X seconds before the previous one ends; the two crossfade (equal power) across that overlap.
+function scheduleCopy(v, buf, t, first) {
+  if (v.stopped) return;
+  const D = buf.duration, X = v.X;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const g = ctx.createGain();
+  if (first) g.gain.setValueAtTime(1, t);
+  else { g.gain.setValueAtTime(0, t); g.gain.setValueCurveAtTime(fadeIn, t, X); }
+  g.gain.setValueCurveAtTime(fadeOut, t + D - X, X);
+  src.connect(g).connect(v.out);
+  src.start(t); src.stop(t + D + .02);
+  const copy = { src, g, t }; v.copies.push(copy);
+  src.onended = () => { v.copies = v.copies.filter(c => c !== copy); try { g.disconnect(); } catch {} };
+  v.timer = setTimeout(() => scheduleCopy(v, buf, t + D - X, false), Math.max(0, (t - ctx.currentTime) * 1000));
+}
+function voiceStop(v, fade = .25) {
+  if (v.stopped) return;
+  v.stopped = true; clearTimeout(v.timer);
+  const now = ctx.currentTime, g = v.out.gain;
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + fade);
+  const copies = [...v.copies];
+  for (const c of copies) {
+    if (c.src) { c.src.onended = null; try { c.src.stop(now + fade + .02); } catch {} }
+    else { c.handed = true; c.el.onended = null; c.el.onerror = null; }
+  }
+  setTimeout(() => {
+    for (const c of copies) if (c.p) dropCopy(v, c);
+    try { v.out.disconnect(); } catch {}
+  }, (fade + .2) * 1000);
+  if (playing.get(v.id) === v) playing.delete(v.id);
+}
+async function toggle(id) {
+  if (!started) return;
+  const s = byId(id); if (!s) return;
+  await ensureAudio();
+  const v = playing.get(id);
+  if (v) voiceStop(v);
+  else if (isStream(s) || buffers.has(id)) voiceStart(s);
+  else { toast(`“${s.name}” couldn't be loaded. Edit it and choose the file again.`); return; }
+  refreshPlaying();
+}
+function stopAll() {
+  for (const v of [...playing.values()]) voiceStop(v, 1.5);
+  refreshPlaying();
+}
+function tick() {
+  raf = 0;
+  if (!ctx || !playing.size) return;
+  const now = ctx.currentTime;
+  for (const [id, v] of playing) {
+    let p;
+    if (v.stream) {
+      let cur = null; for (const c of v.copies) if (!c.handed) cur = c;
+      cur = cur || v.copies[v.copies.length - 1];
+      const D = cur && isFinite(cur.el.duration) && cur.el.duration > 0 ? cur.el.duration : v.dur;
+      p = cur && D ? cur.el.currentTime / D : 0;
+    } else if (v.loop) {
+      let cur = null; for (const c of v.copies) if (c.t <= now && (!cur || c.t > cur.t)) cur = c;
+      p = cur ? ((now - cur.t) % v.dur) / v.dur : 0;
+    } else p = (now - v.startedAt) / v.dur;
+    p = Math.max(0, Math.min(1, p));
+    for (const el of $$(`[data-id="${id}"] .prog`)) el.style.setProperty('--p', p.toFixed(4));
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+/* ================= rendering ================= */
+const boardEl = $('#board'), relatedEl = $('#related'), relatedInner = $('#related-inner');
+function setFill(input) { input.style.setProperty('--fill', input.value + '%'); }
+
+function tileEl(s) {
+  const pct = Math.round(s.volume * 100);
+  const links = s.links.filter(byId).length;
+  const art = artEl(s);
+  if (s.loop) art.append(h('span', { class: 'chip chip-loop' }, 'Loop'));
+  if (failed.has(s.id)) art.append(h('span', { class: 'chip chip-err' }, 'Not loaded'));
+  if (links) art.append(h('span', { class: 'chip chip-links', title: `${links} related sound${links > 1 ? 's' : ''}` }, `+${links} related`));
+  const range = h('input', { type: 'range', min: '0', max: '100', step: '1', value: String(pct), id: `vol-${s.id}`, 'aria-label': `${s.name} volume` });
+  const out = h('output', { for: `vol-${s.id}` }, pct);
+  setFill(range);
+  range.addEventListener('input', () => {
+    s.volume = range.value / 100; out.textContent = range.value; setFill(range);
+    const v = playing.get(s.id); if (v && ctx) v.out.gain.setTargetAtTime(s.volume, ctx.currentTime, .03);
+    clearTimeout(s._saveT); s._saveT = setTimeout(() => persist(s), 400);
+  });
+  return h('article', { class: `tile${s.loop ? ' is-loop' : ''}${failed.has(s.id) ? ' broken' : ''}${playing.has(s.id) ? ' playing' : ''}`, 'data-id': s.id },
+    h('button', { class: 'hit', type: 'button', 'aria-pressed': String(playing.has(s.id)), onclick: () => editMode ? openEditor(s.id) : toggle(s.id) },
+      art, h('span', { class: 'name' }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('span', {}, s.name))),
+    h('div', { class: 'vol' }, range, out));
+}
+const SECTIONS = {
+  weather: ['Weather & water', '#335f8c'], nature: ['Nature & night', '#46703e'], city: ['City & travel', '#94562a'],
+  places: ['Places', '#62458a'], home: ['Home & office', '#2f6b6c'], bells: ['Bells & alarms', '#8a6a22'],
+  stings: ['Stings & hits', '#86343f'], added: ['Added sounds', '#6b7180'],
+};
+function renderBoard() {
+  const list = sorted();
+  const cats = new Set(list.map(s => s.category || 'added'));
+  const tiles = [];
+  let prev = null;
+  for (const s of list) {
+    const c = s.category || 'added';
+    if (cats.size > 1 && c !== prev && SECTIONS[c]) tiles.push(h('h2', { class: 'sect', style: `--sect:${SECTIONS[c][1]}` }, h('i', { 'aria-hidden': 'true' }), SECTIONS[c][0]));
+    prev = c;
+    tiles.push(tileEl(s));
+  }
+  if (editMode) tiles.push(h('button', { class: 'tile-add', type: 'button', onclick: () => openEditor(null) }, h('span', {}, h('b', {}, '+'), 'Add sound')));
+  boardEl.replaceChildren(...tiles);
+  document.body.classList.toggle('editing', editMode);
+  renderRelated(); updateStatus();
+}
+function renderRelated() {
+  const groups = [];
+  if (!editMode) for (const [id] of playing) {
+    const s = byId(id); if (!s) continue;
+    const ls = s.links.map(byId).filter(Boolean);
+    if (ls.length) groups.push([s, ls]);
+  }
+  relatedInner.replaceChildren(...groups.map(([p, ls]) =>
+    h('div', { class: 'rgroup' },
+      h('span', { class: 'rlabel' }, 'With ', h('b', {}, p.name)),
+      h('div', { class: 'rrow' }, ...ls.map(s =>
+        h('button', { class: `mini${s.loop ? ' is-loop' : ''}${playing.has(s.id) ? ' playing' : ''}`, type: 'button', 'data-id': s.id, 'aria-pressed': String(playing.has(s.id)), onclick: () => toggle(s.id) },
+          artEl(s), h('span', { class: 'mname' }, s.name)))))));
+  relatedEl.hidden = !groups.length;
+  document.body.classList.toggle('has-related', !!groups.length);
+}
+function updateStatus() {
+  const n = sounds.length, p = playing.size;
+  const line = $('#status-line');
+  line.replaceChildren(`${n} sound${n === 1 ? '' : 's'}`);
+  if (p) line.append(' · ', h('b', {}, `${p} playing`));
+  else if (editMode) line.append(' · editing');
+  $('#stop-all').disabled = !p;
+}
+function refreshPlaying() {
+  for (const el of $$('.tile[data-id]')) {
+    const on = playing.has(el.dataset.id);
+    el.classList.toggle('playing', on);
+    el.querySelector('.hit').setAttribute('aria-pressed', String(on));
+    if (!on) el.querySelector('.prog')?.style.setProperty('--p', 0);
+  }
+  renderRelated(); updateStatus();
+  if (playing.size && !raf) raf = requestAnimationFrame(tick);
+}
+
+/* ================= start show ================= */
+async function startShow() {
+  const go = $('#go'), status = $('#go-status');
+  if (importing) return;
+  go.disabled = true;
+  let resumed;
+  try { resumed = ensureAudio(); unlockPool(16); await resumed; } catch { status.textContent = "Audio couldn't start. Reload the page and tap GO again."; go.disabled = false; return; }
+  const list = sorted().filter(s => !isStream(s));
+  for (const s of sorted()) if (isStream(s)) failed.delete(s.id);
+  for (let i = 0; i < list.length; i++) {
+    const s = list[i];
+    status.textContent = `Loading ${i + 1} of ${list.length}: ${s.name}`;
+    await new Promise(r => setTimeout(r, 0));
+    if (buffers.has(s.id)) continue;
+    try { buffers.set(s.id, await loadBuffer(s)); failed.delete(s.id); } catch { failed.add(s.id); }
+  }
+  started = true;
+  $('#start-overlay').hidden = true;
+  keepAwake();
+  try { navigator.storage?.persist?.(); } catch {}
+  renderBoard();
+  if (failed.size) toast(`${failed.size} sound${failed.size > 1 ? 's' : ''} couldn't be loaded. They're marked on the board.`);
+}
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && document.visibilityState === 'visible') wake = await navigator.wakeLock.request('screen'); } catch {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && started) { keepAwake(); ctx?.resume().catch(() => {}); }
+});
+
+/* ================= editor ================= */
+const dlg = $('#editor');
+const ed = { id: null, audioFile: null, imageBlob: null, removeImage: false, delArmed: false, delT: 0 };
+function edPicture() {
+  const s = ed.id ? byId(ed.id) : null;
+  const name = $('#ed-name').value.trim() || (s ? s.name : '?');
+  const pseudo = { id: ed.id || 'new', name, demo: s?.demo };
+  let url = null, custom = false;
+  if (ed.imageBlob) { url = URL.createObjectURL(ed.imageBlob); custom = true; }
+  else if (s && s.image && !ed.removeImage) { url = imageURL(s); custom = true; }
+  else if (s && s.demo) url = DEMO_ART[s.demo];
+  const pic = $('#ed-pic');
+  pic.replaceChildren(url ? h('img', { src: url, alt: '' }) : h('span', { class: 'initials', style: `background:${gel(pseudo)}` }, initials(name)));
+  $('#ed-img-remove').hidden = !custom;
+}
+function edAudioInfo() {
+  const s = ed.id ? byId(ed.id) : null, info = $('#ed-audio-info');
+  if (ed.audioFile) info.textContent = `${ed.audioFile.name} · new file`;
+  else if (s && s.audio) info.textContent = `${s.audio.name || 'Sound file'}${s.duration ? ' · ' + fmtTime(s.duration) : ''}`;
+  else if (s && s.demo) info.textContent = `Built-in example${buffers.has(s.id) ? ' · ' + fmtTime(buffers.get(s.id).duration) : ''}`;
+  else info.textContent = 'No file chosen';
+}
+function edPosButtons() {
+  const list = sorted(), i = list.findIndex(x => x.id === ed.id);
+  $('#ed-pos-field').hidden = !ed.id;
+  $('#ed-earlier').disabled = i <= 0;
+  $('#ed-later').disabled = i < 0 || i >= list.length - 1;
+}
+function edError(msg) { const e = $('#ed-error'); e.textContent = msg || ''; e.hidden = !msg; }
+function openEditor(id) {
+  const s = id ? byId(id) : null;
+  Object.assign(ed, { id, audioFile: null, imageBlob: null, removeImage: false, delArmed: false });
+  $('#ed-title').textContent = s ? 'Edit sound' : 'Add sound';
+  $('#ed-name').value = s ? s.name : '';
+  const vol = $('#ed-volume'); vol.value = String(Math.round((s ? s.volume : .8) * 100)); setFill(vol);
+  $('#ed-volume-out').textContent = vol.value;
+  $('#ed-loop').checked = s ? s.loop : false;
+  $('#ed-audio').value = ''; $('#ed-image').value = '';
+  const others = sorted().filter(x => x.id !== id);
+  $('#ed-links').replaceChildren(...(others.length ? others.map(o =>
+    h('label', { for: `ed-link-${o.id}` }, h('input', { type: 'checkbox', id: `ed-link-${o.id}`, value: o.id, checked: !!(s && s.links.includes(o.id)) }), h('span', {}, o.name)))
+    : [h('span', { class: 'none' }, 'Add more sounds to link them here.')]));
+  $('#ed-delete').hidden = !s; $('#ed-delete').textContent = 'Delete';
+  $('#ed-save').disabled = false; $('#ed-save').textContent = s ? 'Save' : 'Add to board';
+  edError(''); edAudioInfo(); edPicture(); edPosButtons();
+  dlg.showModal();
+}
+function closeEditor() { clearTimeout(ed.delT); if (dlg.open) dlg.close(); }
+$('#ed-volume').addEventListener('input', e => { $('#ed-volume-out').textContent = e.target.value; setFill(e.target); });
+$('#ed-name').addEventListener('input', () => { if (!$('#ed-pic img')) edPicture(); });
+$('#ed-audio').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  ed.audioFile = f; edError('');
+  if (!$('#ed-name').value.trim()) $('#ed-name').value = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').slice(0, 40);
+  edAudioInfo(); edPicture();
+});
+$('#ed-image').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  ed.imageBlob = await shrinkImage(f); ed.removeImage = false; edPicture();
+});
+$('#ed-img-remove').addEventListener('click', () => { ed.imageBlob = null; ed.removeImage = true; $('#ed-image').value = ''; edPicture(); });
+$('#ed-cancel').addEventListener('click', closeEditor);
+dlg.addEventListener('cancel', () => clearTimeout(ed.delT));
+
+async function shrinkImage(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const sc = Math.min(1, 640 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || file), 'image/jpeg', .85));
+  } catch { return file; }
+}
+
+$('#ed-save').addEventListener('click', async () => {
+  const btn = $('#ed-save');
+  const existing = ed.id ? byId(ed.id) : null;
+  const name = $('#ed-name').value.trim();
+  if (!existing && !ed.audioFile) return edError('Choose a sound file first.');
+  if (!name) return edError('Give the sound a name.');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  let buf = null;
+  if (ed.audioFile) {
+    try { await ensureAudio(); buf = await ctx.decodeAudioData(await ed.audioFile.arrayBuffer()); }
+    catch { btn.disabled = false; btn.textContent = existing ? 'Save' : 'Add to board'; return edError("That file couldn't be read as audio. Try an MP3, M4A or WAV file."); }
+  }
+  const s = existing || { id: newId(), order: sounds.length ? Math.max(...sounds.map(x => x.order)) + 1 : 0, links: [], demo: null, audio: null, image: null };
+  s.name = name;
+  s.volume = $('#ed-volume').value / 100;
+  const loopChanged = existing && existing.loop !== $('#ed-loop').checked;
+  s.loop = $('#ed-loop').checked;
+  s.links = $$('#ed-links input:checked').map(i => i.value);
+  if (buf) {
+    s.audio = ed.audioFile; s.demo = null; s.bundleFile = null; s.duration = buf.duration; failed.delete(s.id);
+    if (isStream(s)) buffers.delete(s.id); else buffers.set(s.id, buf);
+  }
+  if (ed.removeImage) { s.image = null; s.bundleImage = null; }
+  if (ed.imageBlob) { s.image = ed.imageBlob; s.bundleImage = null; }
+  const v = playing.get(s.id);
+  if (v && (buf || loopChanged)) voiceStop(v);
+  else if (v) v.out.gain.setTargetAtTime(s.volume, ctx.currentTime, .03);
+  if (!existing) sounds.push(s);
+  await persist(s);
+  closeEditor(); renderBoard();
+  toast(existing ? 'Saved.' : `Added “${s.name}”.`);
+});
+
+$('#ed-delete').addEventListener('click', async () => {
+  const btn = $('#ed-delete');
+  if (!ed.delArmed) {
+    ed.delArmed = true; btn.textContent = 'Tap again to delete';
+    clearTimeout(ed.delT); ed.delT = setTimeout(() => { ed.delArmed = false; btn.textContent = 'Delete'; }, 3500);
+    return;
+  }
+  const s = byId(ed.id); if (!s) return closeEditor();
+  const v = playing.get(s.id); if (v) voiceStop(v);
+  sounds = sounds.filter(x => x !== s); buffers.delete(s.id); failed.delete(s.id);
+  const c = imgCache.get(s.id); if (c) { URL.revokeObjectURL(c.url); imgCache.delete(s.id); }
+  for (const o of sounds) if (o.links.includes(s.id)) { o.links = o.links.filter(x => x !== s.id); persist(o); }
+  const u = urls.get(s.id); if (u) { URL.revokeObjectURL(u.url); urls.delete(s.id); }
+  try { await store.del(s.id); } catch {}
+  if (s.id.startsWith('b-')) { // keep deleted folder sounds from coming back on the next load
+    try { const gone = (await store.getMeta('removedBundle')) || []; if (!gone.includes(s.id)) await store.setMeta('removedBundle', [...gone, s.id]); } catch {}
+  }
+  closeEditor(); renderBoard(); refreshPlaying();
+  toast(`Deleted “${s.name}”.`);
+});
+
+async function move(dir) {
+  const list = sorted(), i = list.findIndex(x => x.id === ed.id), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  list.splice(j, 0, list.splice(i, 1)[0]);
+  list.forEach((s, k) => { if (s.order !== k) { s.order = k; persist(s); } });
+  renderBoard(); edPosButtons();
+}
+$('#ed-earlier').addEventListener('click', () => move(-1));
+$('#ed-later').addEventListener('click', () => move(1));
+
+/* ================= backup / restore ================= */
+const getCap = name => { try { return window.claude?.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null); } catch { return Promise.resolve(null); } };
+const downloadsCap = getCap('downloads');
+const blobToDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+function dataURLToBlob(u) {
+  const [head, b64] = u.split(','); const type = (head.match(/data:([^;]+)/) || [])[1] || 'application/octet-stream';
+  const bin = atob(b64), arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type });
+}
+$('#export-board').addEventListener('click', async () => {
+  const btn = $('#export-board'); btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    const out = { app: 'improv-soundboard', version: 1, exported: new Date().toISOString(), sounds: [] };
+    // Sounds that came from the folder board are saved as references, so the backup stays small.
+    for (const s of sorted()) out.sounds.push({
+      id: s.id, name: s.name, order: s.order, volume: s.volume, loop: s.loop, links: s.links, demo: s.demo || null,
+      duration: s.duration || 0, category: s.category || null, bundleFile: s.bundleFile || null, bundleImage: s.bundleImage || null,
+      audio: s.audio && !s.bundleFile ? await blobToDataURL(s.audio) : null, audioName: s.audio?.name || null,
+      image: s.image && !s.bundleImage ? await blobToDataURL(s.image) : null,
+    });
+    const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+    const filename = `improv-soundboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const dl = await downloadsCap;
+    if (dl) {
+      try { await dl.save({ filename, data: blob }); toast('Backup saved.'); }
+      catch (e) { toast(e && e.code === 'declined' ? 'Backup not saved.' : "Couldn't save the backup here."); }
+    } else {
+      const a = h('a', { href: URL.createObjectURL(blob), download: filename });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 20000);
+      toast('Backup downloaded.');
+    }
+  } catch { toast("Couldn't build the backup."); }
+  btn.disabled = false; btn.textContent = 'Back up board';
+});
+
+let pendingImport = null;
+$('#import-file').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== 'improv-soundboard' || !Array.isArray(data.sounds)) throw new Error('bad');
+    pendingImport = data;
+    $('#confirm-text').textContent = `Replace your board with ${data.sounds.length} sound${data.sounds.length === 1 ? '' : 's'} from this backup? The sounds on the board now will be removed.`;
+    $('#confirm').hidden = false;
+  } catch { toast("That file isn't a soundboard backup."); }
+});
+$('#confirm-no').addEventListener('click', () => { pendingImport = null; $('#confirm').hidden = true; });
+$('#confirm-yes').addEventListener('click', async () => {
+  const data = pendingImport; pendingImport = null; $('#confirm').hidden = true;
+  if (!data) return;
+  for (const v of [...playing.values()]) voiceStop(v, .1);
+  for (const c of imgCache.values()) URL.revokeObjectURL(c.url);
+  imgCache.clear(); buffers.clear(); failed.clear();
+  try { await store.clear(); } catch {}
+  for (const u of urls.values()) URL.revokeObjectURL(u.url);
+  urls.clear();
+  let missing = 0;
+  sounds = [];
+  for (const [i, r] of data.sounds.entries()) {
+    let audio = null, image = null;
+    try {
+      if (r.audio) { const b = dataURLToBlob(r.audio); audio = r.audioName ? new File([b], r.audioName, { type: b.type }) : b; }
+      else if (r.bundleFile) audio = await fetchBundleFile(r.bundleFile, 'audio/mpeg');
+      if (r.image) image = dataURLToBlob(r.image);
+      else if (r.bundleImage) image = await fetchBundleFile(r.bundleImage, 'image/svg+xml').catch(() => null);
+    } catch { missing++; }
+    const s = fromRecord({ ...r, id: r.id || newId(), audio, image, demo: r.demo && SYNTH[r.demo] ? r.demo : null }, i);
+    s.name = s.name.slice(0, 40); s.volume = Math.max(0, Math.min(1, s.volume));
+    sounds.push(s);
+  }
+  if (missing) toast(`${missing} sound${missing > 1 ? 's' : ''} from the folder board couldn't be downloaded.`);
+  for (const s of sounds) await persist(s);
+  if (manifest) { // folder sounds left out of the backup stay out
+    const keep = new Set(sounds.map(s => s.id));
+    try { await store.setMeta('removedBundle', manifest.sounds.map(x => x.id).filter(id => !keep.has(id))); } catch {}
+  }
+  if (started) for (const s of sounds) { if (isStream(s)) continue; try { buffers.set(s.id, await loadBuffer(s)); } catch { failed.add(s.id); } }
+  renderBoard(); refreshPlaying();
+  toast(`Restored ${sounds.length} sound${sounds.length === 1 ? '' : 's'}.`);
+});
+
+/* ================= chrome ================= */
+let toastT = 0;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200);
+}
+$('#go').addEventListener('click', startShow);
+$('#stop-all').addEventListener('click', stopAll);
+$('#add-sound').addEventListener('click', () => openEditor(null));
+$('#edit-toggle').addEventListener('click', () => {
+  editMode = !editMode;
+  const b = $('#edit-toggle');
+  b.textContent = editMode ? 'Done' : 'Edit board';
+  b.classList.toggle('btn-on', editMode);
+  b.setAttribute('aria-pressed', String(editMode));
+  $('#edit-tools').hidden = !editMode;
+  renderBoard();
+});
+
+/* ================= folder board (sounds published alongside this page) ================= */
+let manifest = null, importing = false;
+async function fetchBundleFile(path, type) {
+  const r = await fetch('board/' + path);
+  if (!r.ok) throw new Error(String(r.status));
+  const buf = await r.arrayBuffer();
+  return type.startsWith('audio/') ? new File([buf], path.split('/').pop(), { type }) : new Blob([buf], { type });
+}
+async function loadManifest() {
+  try {
+    const r = await fetch('board/board.json', { cache: 'no-cache' });
+    if (!r.ok) return null;
+    const m = await r.json();
+    return m && m.app === 'improv-soundboard' && Array.isArray(m.sounds) ? m : null;
+  } catch { return null; }
+}
+async function importBundle(m) {
+  const status = $('#go-status'), go = $('#go');
+  let gone = []; try { gone = (await store.getMeta('removedBundle')) || []; } catch {}
+  const have = new Set(sounds.map(s => s.id));
+  const todo = m.sounds.filter(x => !have.has(x.id) && !gone.includes(x.id));
+  const demos = sounds.filter(s => s.demo);
+  if (!todo.length && !demos.length) return;
+  importing = true; go.disabled = true;
+  for (const s of demos) { sounds = sounds.filter(x => x !== s); try { await store.del(s.id); } catch {} }
+  const base = sounds.length ? Math.max(...sounds.map(s => s.order)) + 1 : 0;
+  let failedCount = 0;
+  for (const [n, r] of todo.entries()) {
+    status.textContent = `Adding sounds from your folder: ${n + 1} of ${todo.length} (${r.name})`;
+    try {
+      const [audio, image] = await Promise.all([
+        fetchBundleFile(r.file, 'audio/mpeg'),
+        r.image ? fetchBundleFile(r.image, 'image/svg+xml').catch(() => null) : null,
+      ]);
+      const s = fromRecord({ ...r, order: base + m.sounds.indexOf(r), audio, image, bundleFile: r.file, bundleImage: r.image || null });
+      sounds.push(s); await persist(s);
+      renderBoard();
+    } catch { failedCount++; }
+  }
+  importing = false; go.disabled = false;
+  renderBoard();
+  if (failedCount) toast(`${failedCount} sound${failedCount > 1 ? 's' : ''} couldn't be downloaded. Reload the page to try again.`);
+  else if (todo.length) toast(`Added ${todo.length} sound${todo.length > 1 ? 's' : ''} from your folder.`);
+}
+
+/* ================= boot ================= */
+// The home-screen (GitHub Pages) version links a manifest and works offline through a service worker.
+try { if (document.querySelector('link[rel="manifest"]') && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); } catch {}
+(async function init() {
+  await store.open();
+  let recs = [];
+  try { recs = await store.all(); } catch {}
+  sounds = recs.map(fromRecord);
+  $('#storage-warn').hidden = store.ok;
+  renderBoard();
+  manifest = await loadManifest();
+  if (manifest) await importBundle(manifest);
+  else if (!sounds.length) {
+    let seeded = null; try { seeded = await store.getMeta('seeded'); } catch {}
+    if (!seeded) {
+      sounds = DEMOS.map((d, i) => fromRecord({ ...d, order: i }));
+      for (const s of sounds) await persist(s);
+      try { await store.setMeta('seeded', true); } catch {}
+    }
+  }
+  $('#go-status').textContent = `${sounds.length} sound${sounds.length === 1 ? '' : 's'} on the board.`;
+  renderBoard();
+})();
+})();
+</script>
+</body>
+</html>
