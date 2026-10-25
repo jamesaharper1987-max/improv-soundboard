@@ -188,6 +188,9 @@ dialog::backdrop{background:var(--scrim)}
 .kb-link-status{flex:1 1 160px;font-size:.88rem;color:var(--ink-dim);min-width:0}
 .kb-link.on .kb-link-status{color:var(--ink)}
 .kb-link.on .kb-link-status b{color:var(--loop)}
+.kb-thru{flex:1 1 100%;font-size:.95rem}
+.kb-link-help{flex:1 1 100%;margin:0;font-size:.82rem;color:var(--ink-dim)}
+.kb-link-help b{color:var(--ink)}
 .kb-select{font:700 .9rem/1 var(--f-body);min-height:42px;padding:0 10px;border-radius:10px;border:1.5px solid var(--rule);background:var(--deck);color:var(--ink);max-width:100%}
 .kb-sendable .kb-item[data-n]{cursor:pointer}
 .kb-sendable .kb-item[data-n]:active{background:var(--deck-2)}
@@ -243,6 +246,8 @@ dialog::backdrop{background:var(--scrim)}
       <select class="kb-select" id="kb-out" aria-label="MIDI device" hidden></select>
       <select class="kb-select" id="kb-ch" aria-label="MIDI channel" hidden></select>
       <button class="btn btn-quiet" id="kb-test" type="button" hidden>Test note</button>
+      <label class="switch kb-thru" for="kb-thru" hidden><input type="checkbox" id="kb-thru">Keys play the voice chosen here</label>
+      <p class="kb-link-help" id="kb-thru-help" hidden>Your keys now play through this app, so the voice you tap here is the one you hear. If every note sounds twice, set <b>Local Control</b> to <b>Off</b> in the keyboard’s Function menu. Turn this switch off before unplugging, or the keys go quiet until Local Control is back on.</p>
     </div>
     <div class="kb-search">
       <input type="search" id="kb-q" placeholder="Find a sound, e.g. whistle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Search the keyboard's voices">
@@ -1224,10 +1229,11 @@ async function kbToggle(force) {
 /* ---- send to keyboard (only where the browser offers Web MIDI: Chrome on a Mac, MIDIWeb Browser on iPad) ---- */
 // Selecting a voice = Bank Select MSB (CC 0), Bank Select LSB (CC 32), then Program Change.
 // Yamaha prints program numbers 1–128; MIDI sends 0–127, hence pc − 1.
-const mid = { supported: typeof navigator.requestMIDIAccess === 'function', access: null, out: null, ch: 0, outs: [] };
+const mid = { supported: typeof navigator.requestMIDIAccess === 'function', access: null, out: null, ch: 0, outs: [], thru: false, ins: [], echo: new Map(), rate: 0, rateT: 0 };
 function kbGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function kbSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
 mid.ch = Math.min(15, Math.max(0, (parseInt(kbGet('kb-ch'), 10) || 1) - 1));
+mid.thru = kbGet('kb-thru') === 'on';
 function midiStatus(html) { $('#kb-link-status').innerHTML = html; }
 function midiRefresh() {
   const outs = mid.access ? [...mid.access.outputs.values()].filter(o => o.state !== 'disconnected') : [];
@@ -1242,9 +1248,15 @@ function midiRefresh() {
   $('#kb-link').classList.toggle('on', on);
   $('#kb-connect').hidden = on;
   $('#kb-ch').hidden = $('#kb-test').hidden = !on;
+  $('.kb-thru').hidden = !on;
+  $('#kb-thru').checked = mid.thru;
+  $('#kb-thru-help').hidden = !(on && mid.thru);
+  midiWireInputs();
   $('#kb-list').classList.toggle('kb-sendable', on);
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  if (on) midiStatus(`Linked to <b>${esc(mid.out.name || 'keyboard')}</b>. Tap a voice to switch the keyboard to it.`);
+  if (on) midiStatus(mid.thru
+    ? `Linked to <b>${esc(mid.out.name || 'keyboard')}</b>. Tap a voice, then play.`
+    : `Linked to <b>${esc(mid.out.name || 'keyboard')}</b>. Tap a voice to switch the keyboard to it.`);
   else if (mid.access) midiStatus('No keyboard found. Check the cable goes into the keyboard’s USB TO HOST port and the keyboard is on.');
   if (kb.data) kbRender();
 }
@@ -1256,12 +1268,53 @@ async function midiConnect() {
     mid.access.onstatechange = () => midiRefresh();
     kbSet('kb-midi', 'on');
     midiRefresh();
+    if (mid.thru) midiLocal(false);
   } catch (err) {
     mid.access = null;
     midiStatus('MIDI access was refused, so the keyboard can’t be switched from here. Allow MIDI for this site in the browser settings, then tap Connect keyboard again.');
   }
 }
 function midiSend(bytes) { try { mid.out.send(bytes); return true; } catch (err) { toast('Couldn’t reach the keyboard. Check the cable.'); return false; } }
+
+// "Keys play the voice chosen here": the keyboard's own panel voice can't be changed over MIDI,
+// only the part that plays incoming MIDI. So with Local Control off, every key press comes in
+// over USB and is sent straight back on the chosen channel, where the chosen voice plays it.
+function midiLocal(on) {
+  if (!mid.out) return;
+  const v = on ? 127 : 0;
+  try { mid.out.send([0xB0 | mid.ch, 122, v]); if (mid.ch) mid.out.send([0xB0, 122, v]); } catch {}
+}
+function midiRelay(e) {
+  if (!mid.thru || !mid.out) return;
+  const d = e.data, st = d[0];
+  if (st < 0x80 || st >= 0xF0) return; // ignore clock, sysex, active sensing
+  const msg = [(st & 0xF0) | mid.ch, ...Array.from(d).slice(1)];
+  const key = msg.join(','), now = performance.now();
+  // If the keyboard echoes back what we sent, drop it rather than loop.
+  if (now - (mid.echo.get(key) || -1e9) < 40) return;
+  if (now - mid.rateT > 1000) { mid.rateT = now; mid.rate = 0; }
+  if (++mid.rate > 1500) { midiThru(false); toast('Stopped keys-through: the keyboard was sending its notes back in a loop.'); return; }
+  mid.echo.set(key, now);
+  if (mid.echo.size > 256) mid.echo.clear();
+  try { mid.out.send(msg); } catch {}
+}
+function midiWireInputs() {
+  for (const i of mid.ins) i.onmidimessage = null;
+  mid.ins = [];
+  if (!mid.access || !mid.out || !mid.thru) return;
+  const ins = [...mid.access.inputs.values()].filter(i => i.state !== 'disconnected');
+  const same = ins.filter(i => i.name && i.name === mid.out.name);
+  const like = ins.filter(i => /yamaha|digital keyboard|psr|ew4|e47/i.test(`${i.manufacturer} ${i.name}`));
+  mid.ins = same.length ? same : like.length ? like : ins;
+  for (const i of mid.ins) i.onmidimessage = midiRelay;
+}
+function midiThru(on) {
+  if (!on && mid.out) { try { mid.out.send([0xB0 | mid.ch, 123, 0]); } catch {} } // all notes off
+  mid.thru = on;
+  kbSet('kb-thru', on ? 'on' : 'off');
+  midiLocal(!on);
+  midiRefresh();
+}
 function kbSendVoice(n) {
   if (!mid.out || !kb.data) return;
   const v = kb.data.voices[n - 1];
@@ -1279,7 +1332,15 @@ if (mid.supported) {
   $('#kb-ch').replaceChildren(...Array.from({ length: 16 }, (_, i) => h('option', { value: i, selected: i === mid.ch }, 'Channel ' + (i + 1))));
   $('#kb-connect').addEventListener('click', midiConnect);
   $('#kb-out').addEventListener('change', e => { mid.out = mid.outs.find(o => o.id === e.target.value) || null; kbSet('kb-out', e.target.value); midiRefresh(); });
-  $('#kb-ch').addEventListener('change', e => { mid.ch = Number(e.target.value); kbSet('kb-ch', String(mid.ch + 1)); });
+  $('#kb-ch').addEventListener('change', e => {
+    if (mid.thru && mid.out) { try { mid.out.send([0xB0 | mid.ch, 123, 0]); } catch {} }
+    mid.ch = Number(e.target.value); kbSet('kb-ch', String(mid.ch + 1));
+    if (mid.thru) midiLocal(false);
+  });
+  $('#kb-thru').addEventListener('change', e => midiThru(e.target.checked));
+  // Leaving the app: give the keys back to the keyboard.
+  addEventListener('pagehide', () => { if (mid.thru) midiLocal(true); });
+  addEventListener('pageshow', e => { if (e.persisted && mid.thru) midiLocal(false); });
   $('#kb-test').addEventListener('click', () => {
     const c = mid.ch;
     if (midiSend([0x90 | c, 60, 96])) setTimeout(() => midiSend([0x80 | c, 60, 0]), 700);
