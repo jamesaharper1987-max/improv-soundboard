@@ -19,7 +19,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Big+Shoulders+Display:wght@700;800&display=swap">
 <style>
 /* Layout: a sticky stage bar, a grid of cue tiles that light up like lighting gels when live
-   (amber for one-shots, cyan for loops), and a strip of related cues docked at the bottom.
+   (amber for one-shots, cyan for loops). A live tile shows a Fade out button in its corner.
    Deliberately dark-only: it is used side-stage with the house lights down. */
 :root{
   --house:#111318; --deck:#1a1d24; --deck-2:#232731; --deck-3:#2d323e; --rule:#363c49;
@@ -32,7 +32,8 @@
   --r:14px;
   color-scheme:dark;
 }
-html,body{height:100%}
+html{height:100%}
+body{min-height:100%}
 [hidden]{display:none!important}
 body{
   background:var(--house); color:var(--ink); font-family:var(--f-body); font-size:16px; line-height:1.4;
@@ -69,10 +70,18 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 .sect:first-child{padding-top:2px}
 .sect i{width:10px;height:10px;border-radius:3px;background:var(--sect,var(--ink-faint))}
 .sect::after{content:"";flex:1;height:1px;background:var(--rule)}
-body.has-related .grid{padding-bottom:220px}
-.tile{--hot:var(--live);--glow:var(--live-glow);background:var(--deck);border-radius:var(--r);border:2px solid var(--deck);display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s,box-shadow .15s;min-width:0}
-.tile.is-loop,.mini.is-loop{--hot:var(--loop);--glow:var(--loop-glow)}
+.tile{--hot:var(--live);--glow:var(--live-glow);position:relative;background:var(--deck);border-radius:var(--r);border:2px solid var(--deck);display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s,box-shadow .15s;min-width:0}
+.tile.is-loop{--hot:var(--loop);--glow:var(--loop-glow)}
 .tile.playing{border-color:var(--hot);box-shadow:0 0 0 2px var(--hot),0 0 34px -2px var(--glow)}
+.tile.fading{border-color:var(--hot);box-shadow:0 0 22px -6px var(--glow);animation:ebb 1.1s ease-in-out infinite alternate}
+@keyframes ebb{to{border-color:var(--deck)}}
+/* per-sound fade: sits over the top-right of the picture, only while the sound is live */
+.fade{position:absolute;top:8px;right:8px;z-index:2;display:none;align-items:center;gap:6px;min-height:44px;padding:0 13px;border-radius:10px;border:1.5px solid var(--hot);background:var(--chip-bg);color:var(--ink);font:700 .92rem/1 var(--f-body);cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.fade svg{width:16px;height:16px;flex:none}
+.fade:active{background:var(--hot);color:var(--live-ink)}
+.fade:disabled{border-color:var(--rule);color:var(--ink-dim);cursor:default}
+.tile.playing .fade,.tile.fading .fade{display:inline-flex}
+body.editing .fade{display:none!important}
 .tile.broken .art{opacity:.4}
 .hit{all:unset;box-sizing:border-box;display:block;cursor:pointer;position:relative}
 .hit:focus-visible{outline:3px solid var(--loop);outline-offset:-3px}
@@ -81,7 +90,6 @@ body.has-related .grid{padding-bottom:220px}
 .initials{display:grid;place-items:center;width:100%;height:100%;font-family:var(--f-display);font-weight:800;font-size:3.2rem;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
 .chip{position:absolute;bottom:11px;font:700 .64rem/1 var(--f-body);letter-spacing:.07em;text-transform:uppercase;padding:4px 6px;border-radius:5px;background:var(--chip-bg)}
 .chip-loop{left:8px;color:var(--loop)}
-.chip-links{right:8px;color:var(--ink)}
 .chip-err{left:8px;color:var(--danger)}
 .prog{position:absolute;left:0;right:0;bottom:0;height:6px;opacity:0;background:var(--chip-bg)}
 .playing .prog{opacity:1}
@@ -103,21 +111,6 @@ input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:var(
 input[type=range]::-moz-range-progress{height:8px;border-radius:4px;background:var(--ink-dim)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--ink);border:3px solid var(--deck);margin-top:-9px;box-shadow:0 1px 4px var(--shadow)}
 input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--ink);border:3px solid var(--deck)}
-
-/* ---------- related strip ---------- */
-.related{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--deck-2);border-top:2px solid var(--live);box-shadow:0 -14px 30px var(--shadow);padding-top:10px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.related h2{margin:0 0 8px;font:700 .72rem/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--live)}
-.rinner{display:flex;gap:22px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
-.rgroup{flex:none;display:flex;flex-direction:column;gap:6px}
-.rlabel{font-size:.8rem;color:var(--ink-dim)}
-.rlabel b{color:var(--ink)}
-.rrow{display:flex;gap:10px}
-.mini{--hot:var(--live);all:unset;box-sizing:border-box;flex:none;width:138px;border-radius:12px;background:var(--deck-3);border:2px solid var(--deck-3);overflow:hidden;cursor:pointer;position:relative}
-.mini .art{aspect-ratio:16/10}
-.mini .initials{font-size:2rem}
-.mini .mname{display:block;padding:7px 9px;font-weight:700;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mini.playing{border-color:var(--hot);box-shadow:0 0 18px -2px var(--hot)}
-.mini:focus-visible{outline:3px solid var(--loop);outline-offset:2px}
 
 /* ---------- GO overlay ---------- */
 .overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:24px max(24px,env(safe-area-inset-right,0px)) 24px max(24px,env(safe-area-inset-left,0px))}
@@ -150,18 +143,12 @@ dialog::backdrop{background:var(--scrim)}
 .switch input::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:var(--ink);transition:transform .15s}
 .switch input:checked{background:var(--loop)}
 .switch input:checked::after{transform:translateX(22px)}
-.links{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.links label{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:10px;background:var(--deck-2);cursor:pointer;font-weight:700;min-width:0}
-.links label span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.links input{width:20px;height:20px;accent-color:var(--live);flex:none}
-.links .none{color:var(--ink-dim);font-size:.92rem}
 .ed-foot{display:flex;flex-wrap:wrap;gap:10px;padding:14px 20px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--rule);background:var(--deck)}
 .ed-foot .spacer{flex:1}
 .error{color:var(--danger);font-weight:700;margin:0}
 
 /* ---------- toast / confirm ---------- */
 .toast,.confirm{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--ink);color:var(--house);border-radius:12px;padding:12px 16px;font-weight:700;box-shadow:0 10px 30px var(--shadow);max-width:calc(100vw - 32px)}
-body.has-related .toast,body.has-related .confirm{bottom:calc(200px + env(safe-area-inset-bottom,0px))}
 .confirm{display:flex;flex-wrap:wrap;gap:10px;align-items:center;width:max-content}
 .confirm p{margin:0;flex:1 1 220px}
 .confirm .btn{min-height:42px}
@@ -201,10 +188,6 @@ body.has-related .toast,body.has-related .confirm{bottom:calc(200px + env(safe-a
 
 <main class="grid" id="board" aria-label="Sounds"></main>
 
-<section class="related" id="related" hidden aria-label="Related sounds">
-  <h2>Related sounds</h2>
-  <div class="rinner" id="related-inner"></div>
-</section>
 
 <div class="overlay" id="start-overlay">
   <div class="overlay-card">
@@ -246,11 +229,6 @@ body.has-related .toast,body.has-related .confirm{bottom:calc(200px + env(safe-a
     <div class="field">
       <label class="switch" for="ed-loop"><input type="checkbox" id="ed-loop">Loop continuously</label>
       <p class="help">Before the clip ends, a fresh copy starts underneath and they crossfade over 10 seconds, so clips that start quiet still sound unbroken.</p>
-    </div>
-    <div class="field">
-      <span class="lbl">Related sounds</span>
-      <p class="help">These appear in a strip at the bottom while this sound plays.</p>
-      <div class="links" id="ed-links"></div>
     </div>
     <div class="field" id="ed-pos-field">
       <span class="lbl">Position on board</span>
@@ -452,6 +430,8 @@ const buffers = new Map();       // id -> AudioBuffer
 const failed = new Set();        // ids whose audio could not be read
 const imgCache = new Map();      // id -> {blob, url}
 const playing = new Map();       // id -> voice
+const fading = new Set();        // voices on their way out after a Fade out tap
+const isFading = id => [...fading].some(v => v.id === id);
 let ctx = null, master = null, started = false, editMode = false, raf = 0, wake = null;
 const byId = id => sounds.find(s => s.id === id);
 const sorted = () => [...sounds].sort((a, b) => a.order - b.order);
@@ -538,9 +518,15 @@ function unlockPool(n) {
 function takeEl() { const p = pool.find(x => !x.busy) || makeEl(); p.busy = true; return p; }
 function releaseEl(p) { try { p.el.pause(); } catch {} try { p.node.disconnect(); } catch {} p.el.onended = null; p.el.onerror = null; p.busy = false; }
 
+function voiceOut(s) {
+  const out = ctx.createGain(), fader = ctx.createGain();
+  out.gain.value = s.volume; out.connect(fader).connect(master);
+  return { out, fader };
+}
+function disconnectVoice(v) { try { v.out.disconnect(); } catch {} try { v.fader.disconnect(); } catch {} }
 function streamStart(s) {
-  const out = ctx.createGain(); out.gain.value = s.volume; out.connect(master);
-  const v = { id: s.id, out, copies: [], loop: s.loop, dur: s.duration, startedAt: ctx.currentTime, timer: 0, stopped: false, stream: true };
+  const { out, fader } = voiceOut(s);
+  const v = { id: s.id, out, fader, copies: [], loop: s.loop, dur: s.duration, startedAt: ctx.currentTime, timer: 0, stopped: false, stream: true };
   v.X = Math.min(CROSSFADE, s.duration * .45);
   playing.set(s.id, v);
   streamCopy(v, s, true);
@@ -557,7 +543,7 @@ function streamCopy(v, s, full) {
   p.el.onended = () => {
     if (v.loop && !copy.handed && !v.stopped) { copy.handed = true; streamCopy(v, s, true); }
     dropCopy(v, copy);
-    if (!v.loop && playing.get(v.id) === v) { playing.delete(v.id); try { v.out.disconnect(); } catch {} refreshPlaying(); }
+    if (!v.loop && playing.get(v.id) === v) { playing.delete(v.id); disconnectVoice(v); refreshPlaying(); }
   };
   p.el.onerror = () => {
     dropCopy(v, copy);
@@ -591,8 +577,8 @@ setInterval(() => {
 function voiceStart(s) {
   if (isStream(s)) return streamStart(s);
   const buf = buffers.get(s.id); if (!buf) return;
-  const out = ctx.createGain(); out.gain.value = s.volume; out.connect(master);
-  const v = { id: s.id, out, copies: [], loop: s.loop, dur: buf.duration, startedAt: ctx.currentTime, timer: 0, stopped: false };
+  const { out, fader } = voiceOut(s);
+  const v = { id: s.id, out, fader, copies: [], loop: s.loop, dur: buf.duration, startedAt: ctx.currentTime, timer: 0, stopped: false };
   playing.set(s.id, v);
   if (s.loop && buf.duration >= 1) {
     v.X = Math.min(CROSSFADE, buf.duration * .45);
@@ -601,7 +587,7 @@ function voiceStart(s) {
     const src = ctx.createBufferSource(); src.buffer = buf; src.loop = !!s.loop;
     src.connect(out); src.start();
     const copy = { src, t: ctx.currentTime }; v.copies.push(copy);
-    src.onended = () => { if (playing.get(s.id) === v) { playing.delete(s.id); try { out.disconnect(); } catch {} refreshPlaying(); } };
+    src.onended = () => { if (playing.get(s.id) === v) { playing.delete(s.id); disconnectVoice(v); refreshPlaying(); } };
   }
 }
 // Each loop copy starts X seconds before the previous one ends; the two crossfade (equal power) across that overlap.
@@ -619,21 +605,48 @@ function scheduleCopy(v, buf, t, first) {
   src.onended = () => { v.copies = v.copies.filter(c => c !== copy); try { g.disconnect(); } catch {} };
   v.timer = setTimeout(() => scheduleCopy(v, buf, t + D - X, false), Math.max(0, (t - ctx.currentTime) * 1000));
 }
-function voiceStop(v, fade = .25) {
-  if (v.stopped) return;
-  v.stopped = true; clearTimeout(v.timer);
-  const now = ctx.currentTime, g = v.out.gain;
-  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + fade);
-  const copies = [...v.copies];
-  for (const c of copies) {
-    if (c.src) { c.src.onended = null; try { c.src.stop(now + fade + .02); } catch {} }
+function cutCopies(v, at) {
+  for (const c of v.copies) {
+    if (c.src) { c.src.onended = null; try { c.src.stop(at); } catch {} }
     else { c.handed = true; c.el.onended = null; c.el.onerror = null; }
   }
+}
+// Quick stop (tile tap, Stop all). Also cuts short a sound that is mid-fade.
+function voiceStop(v, fade = .25) {
+  if (v.killed) return;
+  v.killed = v.stopped = true; clearTimeout(v.timer); clearTimeout(v.fadeT);
+  const now = ctx.currentTime, g = v.out.gain;
+  g.cancelScheduledValues(now); g.setValueAtTime(g.value, now); g.linearRampToValueAtTime(0, now + fade);
+  cutCopies(v, now + fade + .02);
+  const copies = [...v.copies];
   setTimeout(() => {
     for (const c of copies) if (c.p) dropCopy(v, c);
-    try { v.out.disconnect(); } catch {}
+    disconnectVoice(v);
   }, (fade + .2) * 1000);
   if (playing.get(v.id) === v) playing.delete(v.id);
+  fading.delete(v);
+}
+// Fade out: a slow, smooth fade on this one sound. Runs on its own gain stage so the
+// volume slider and Stop all still work while it fades.
+const FADE_SECS = 6;
+const fadeAway = new Float32Array(CURVE).map((_, i) => (1 - i / (CURVE - 1)) ** 2);
+function voiceFade(v, secs = FADE_SECS) {
+  if (v.stopped) return;
+  v.stopped = true; clearTimeout(v.timer);
+  const now = ctx.currentTime, f = v.fader.gain;
+  f.cancelScheduledValues(now); f.setValueAtTime(1, now); f.setValueCurveAtTime(fadeAway, now + .01, secs);
+  cutCopies(v, now + secs + .05);
+  playing.delete(v.id); fading.add(v);
+  v.fadeT = setTimeout(() => {
+    v.killed = true;
+    for (const c of [...v.copies]) if (c.p) dropCopy(v, c);
+    disconnectVoice(v);
+    fading.delete(v); refreshPlaying();
+  }, (secs + .3) * 1000);
+}
+function fadeSound(id) {
+  const v = playing.get(id); if (!v || !ctx) return;
+  voiceFade(v); refreshPlaying();
 }
 async function toggle(id) {
   if (!started) return;
@@ -647,13 +660,15 @@ async function toggle(id) {
 }
 function stopAll() {
   for (const v of [...playing.values()]) voiceStop(v, 1.5);
+  for (const v of [...fading]) voiceStop(v, .8);
   refreshPlaying();
 }
 function tick() {
   raf = 0;
-  if (!ctx || !playing.size) return;
+  if (!ctx || (!playing.size && !fading.size)) return;
   const now = ctx.currentTime;
-  for (const [id, v] of playing) {
+  for (const v of [...fading, ...playing.values()]) {
+    const id = v.id;
     let p;
     if (v.stream) {
       let cur = null; for (const c of v.copies) if (!c.handed) cur = c;
@@ -671,16 +686,15 @@ function tick() {
 }
 
 /* ================= rendering ================= */
-const boardEl = $('#board'), relatedEl = $('#related'), relatedInner = $('#related-inner');
+const boardEl = $('#board');
+const FADE_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 3h14L1 13z" fill="currentColor"/></svg>';
 function setFill(input) { input.style.setProperty('--fill', input.value + '%'); }
 
 function tileEl(s) {
   const pct = Math.round(s.volume * 100);
-  const links = s.links.filter(byId).length;
   const art = artEl(s);
   if (s.loop) art.append(h('span', { class: 'chip chip-loop' }, 'Loop'));
   if (failed.has(s.id)) art.append(h('span', { class: 'chip chip-err' }, 'Not loaded'));
-  if (links) art.append(h('span', { class: 'chip chip-links', title: `${links} related sound${links > 1 ? 's' : ''}` }, `+${links} related`));
   const range = h('input', { type: 'range', min: '0', max: '100', step: '1', value: String(pct), id: `vol-${s.id}`, 'aria-label': `${s.name} volume` });
   const out = h('output', { for: `vol-${s.id}` }, pct);
   setFill(range);
@@ -689,7 +703,11 @@ function tileEl(s) {
     const v = playing.get(s.id); if (v && ctx) v.out.gain.setTargetAtTime(s.volume, ctx.currentTime, .03);
     clearTimeout(s._saveT); s._saveT = setTimeout(() => persist(s), 400);
   });
-  return h('article', { class: `tile${s.loop ? ' is-loop' : ''}${failed.has(s.id) ? ' broken' : ''}${playing.has(s.id) ? ' playing' : ''}`, 'data-id': s.id },
+  const live = playing.has(s.id), fadingOnly = !live && isFading(s.id);
+  const fadeBtn = h('button', { class: 'fade', type: 'button', 'aria-label': `Fade out ${s.name}`, disabled: fadingOnly, onclick: () => fadeSound(s.id) });
+  fadeBtn.innerHTML = FADE_ICON; fadeBtn.append(fadingOnly ? 'Fading…' : 'Fade out');
+  return h('article', { class: `tile${s.loop ? ' is-loop' : ''}${failed.has(s.id) ? ' broken' : ''}${live ? ' playing' : ''}${fadingOnly ? ' fading' : ''}`, 'data-id': s.id },
+    fadeBtn,
     h('button', { class: 'hit', type: 'button', 'aria-pressed': String(playing.has(s.id)), onclick: () => editMode ? openEditor(s.id) : toggle(s.id) },
       art, h('span', { class: 'name' }, h('span', { class: 'dot', 'aria-hidden': 'true' }), h('span', {}, s.name))),
     h('div', { class: 'vol' }, range, out));
@@ -713,41 +731,29 @@ function renderBoard() {
   if (editMode) tiles.push(h('button', { class: 'tile-add', type: 'button', onclick: () => openEditor(null) }, h('span', {}, h('b', {}, '+'), 'Add sound')));
   boardEl.replaceChildren(...tiles);
   document.body.classList.toggle('editing', editMode);
-  renderRelated(); updateStatus();
-}
-function renderRelated() {
-  const groups = [];
-  if (!editMode) for (const [id] of playing) {
-    const s = byId(id); if (!s) continue;
-    const ls = s.links.map(byId).filter(Boolean);
-    if (ls.length) groups.push([s, ls]);
-  }
-  relatedInner.replaceChildren(...groups.map(([p, ls]) =>
-    h('div', { class: 'rgroup' },
-      h('span', { class: 'rlabel' }, 'With ', h('b', {}, p.name)),
-      h('div', { class: 'rrow' }, ...ls.map(s =>
-        h('button', { class: `mini${s.loop ? ' is-loop' : ''}${playing.has(s.id) ? ' playing' : ''}`, type: 'button', 'data-id': s.id, 'aria-pressed': String(playing.has(s.id)), onclick: () => toggle(s.id) },
-          artEl(s), h('span', { class: 'mname' }, s.name)))))));
-  relatedEl.hidden = !groups.length;
-  document.body.classList.toggle('has-related', !!groups.length);
+  updateStatus();
 }
 function updateStatus() {
   const n = sounds.length, p = playing.size;
   const line = $('#status-line');
   line.replaceChildren(`${n} sound${n === 1 ? '' : 's'}`);
   if (p) line.append(' · ', h('b', {}, `${p} playing`));
-  else if (editMode) line.append(' · editing');
-  $('#stop-all').disabled = !p;
+  if (fading.size) line.append(' · ', `${fading.size} fading out`);
+  if (!p && !fading.size && editMode) line.append(' · editing');
+  $('#stop-all').disabled = !p && !fading.size;
 }
 function refreshPlaying() {
   for (const el of $$('.tile[data-id]')) {
-    const on = playing.has(el.dataset.id);
+    const id = el.dataset.id, on = playing.has(id), fadingOnly = !on && isFading(id);
     el.classList.toggle('playing', on);
+    el.classList.toggle('fading', fadingOnly);
     el.querySelector('.hit').setAttribute('aria-pressed', String(on));
-    if (!on) el.querySelector('.prog')?.style.setProperty('--p', 0);
+    const fb = el.querySelector('.fade');
+    if (fb) { fb.disabled = fadingOnly; fb.lastChild.textContent = fadingOnly ? 'Fading…' : 'Fade out'; }
+    if (!on && !fadingOnly) el.querySelector('.prog')?.style.setProperty('--p', 0);
   }
-  renderRelated(); updateStatus();
-  if (playing.size && !raf) raf = requestAnimationFrame(tick);
+  updateStatus();
+  if ((playing.size || fading.size) && !raf) raf = requestAnimationFrame(tick);
 }
 
 /* ================= start show ================= */
@@ -818,10 +824,6 @@ function openEditor(id) {
   $('#ed-volume-out').textContent = vol.value;
   $('#ed-loop').checked = s ? s.loop : false;
   $('#ed-audio').value = ''; $('#ed-image').value = '';
-  const others = sorted().filter(x => x.id !== id);
-  $('#ed-links').replaceChildren(...(others.length ? others.map(o =>
-    h('label', { for: `ed-link-${o.id}` }, h('input', { type: 'checkbox', id: `ed-link-${o.id}`, value: o.id, checked: !!(s && s.links.includes(o.id)) }), h('span', {}, o.name)))
-    : [h('span', { class: 'none' }, 'Add more sounds to link them here.')]));
   $('#ed-delete').hidden = !s; $('#ed-delete').textContent = 'Delete';
   $('#ed-save').disabled = false; $('#ed-save').textContent = s ? 'Save' : 'Add to board';
   edError(''); edAudioInfo(); edPicture(); edPosButtons();
@@ -871,7 +873,6 @@ $('#ed-save').addEventListener('click', async () => {
   s.volume = $('#ed-volume').value / 100;
   const loopChanged = existing && existing.loop !== $('#ed-loop').checked;
   s.loop = $('#ed-loop').checked;
-  s.links = $$('#ed-links input:checked').map(i => i.value);
   if (buf) {
     s.audio = ed.audioFile; s.demo = null; s.bundleFile = null; s.duration = buf.duration; failed.delete(s.id);
     if (isStream(s)) buffers.delete(s.id); else buffers.set(s.id, buf);
@@ -896,6 +897,7 @@ $('#ed-delete').addEventListener('click', async () => {
   }
   const s = byId(ed.id); if (!s) return closeEditor();
   const v = playing.get(s.id); if (v) voiceStop(v);
+  for (const f of [...fading]) if (f.id === s.id) voiceStop(f, .1);
   sounds = sounds.filter(x => x !== s); buffers.delete(s.id); failed.delete(s.id);
   const c = imgCache.get(s.id); if (c) { URL.revokeObjectURL(c.url); imgCache.delete(s.id); }
   for (const o of sounds) if (o.links.includes(s.id)) { o.links = o.links.filter(x => x !== s.id); persist(o); }
@@ -970,7 +972,7 @@ $('#confirm-no').addEventListener('click', () => { pendingImport = null; $('#con
 $('#confirm-yes').addEventListener('click', async () => {
   const data = pendingImport; pendingImport = null; $('#confirm').hidden = true;
   if (!data) return;
-  for (const v of [...playing.values()]) voiceStop(v, .1);
+  for (const v of [...playing.values(), ...fading]) voiceStop(v, .1);
   for (const c of imgCache.values()) URL.revokeObjectURL(c.url);
   imgCache.clear(); buffers.clear(); failed.clear();
   try { await store.clear(); } catch {}
