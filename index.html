@@ -1613,76 +1613,76 @@ const SC_GROUPS = ['Mystery & crime', 'Horror', 'Fantasy', 'Sci-fi', 'Comedy & f
 const scP = (voice, oct = 0, vol = 100) => ({ voice, oct, vol });
 const SC_FIRST = ['forest', 'haunted', 'underwater', 'space', 'saloon', 'cathedral', 'circus', 'paris', 'battle', 'rainy'];
 const SC_STARTERS = [
-  { key: 'forest', group: 'Fantasy', name: 'Mystical forest', split: 54, reverb: 96, sound: 'b-night-crickets', parts: { right: scP(177, 0, 110), left: scP(240, 0, 95) } },
+  { key: 'forest', group: 'Fantasy', name: 'Mystical forest', split: 54, reverb: 96, sound: null, parts: { right: scP(177, 0, 110), left: scP(240, 0, 95) } },
   { key: 'haunted', group: 'Horror', name: 'Haunted house', split: 54, reverb: 104, sound: null, parts: { right: scP(291, 1, 100), left: scP(115, -1, 90) } },
   { key: 'underwater', group: 'Fantasy', name: 'Underwater', split: 54, reverb: 110, sound: null, parts: { right: scP(696, 0, 100), left: scP(683, 0, 95) } },
   { key: 'space', group: 'Sci-fi', name: 'Outer space', split: 54, reverb: 100, sound: null, parts: { right: scP(742, 0, 100), left: scP(227, -1, 95) } },
-  { key: 'saloon', group: 'Places & world', name: 'Wild West saloon', split: 54, reverb: 30, sound: 'b-busy-restaurant', parts: { all: scP(8, 0, 110) } },
+  { key: 'saloon', group: 'Places & world', name: 'Wild West saloon', split: 54, reverb: 30, sound: null, parts: { all: scP(8, 0, 110) } },
   { key: 'cathedral', group: 'Places & world', name: 'Cathedral', split: 54, reverb: 120, sound: null, parts: { right: scP(218, 0, 85), all: scP(55, 0, 105) } },
   { key: 'circus', group: 'Comedy & fun', name: 'Circus', split: 54, reverb: 40, sound: null, parts: { right: scP(643, 0, 105), left: scP(156, 0, 105) } },
-  { key: 'paris', group: 'Places & world', name: 'Paris café', split: 54, reverb: 50, sound: 'b-busy-restaurant', parts: { right: scP(57, 0, 105), left: scP(117, 0, 95) } },
+  { key: 'paris', group: 'Places & world', name: 'Paris café', split: 54, reverb: 50, sound: null, parts: { right: scP(57, 0, 105), left: scP(117, 0, 95) } },
   { key: 'battle', group: 'Fantasy', name: 'Epic battle', split: 54, reverb: 70, sound: null, parts: { right: scP(131, 0, 110), left: scP(115, -1, 100) } },
-  { key: 'rainy', group: 'Romance & drama', name: 'Sad and rainy', split: 54, reverb: 80, sound: 'b-rain', parts: { right: scP(111, 0, 70), all: scP(2, 0, 105) } },
+  { key: 'rainy', group: 'Romance & drama', name: 'Sad and rainy', split: 54, reverb: 80, sound: null, parts: { right: scP(111, 0, 70), all: scP(2, 0, 105) } },
   // Added 25 Oct 2026 from James's ideas board.
-  { key: 'mystery', group: 'Mystery & crime', name: 'Murder mystery', split: 54, reverb: 40, sound: 'b-fire-crackling', parts: { right: scP(117, 0, 105), left: scP(90, 0, 95) },
+  { key: 'mystery', group: 'Mystery & crime', name: 'Murder mystery', split: 54, reverb: 40, sound: null, parts: { right: scP(117, 0, 105), left: scP(90, 0, 95) },
     tip: 'Tiptoe, staccato, minor key (Poirot, Petits Meurtres). Pink Panther sneak: right hand 164 Tenor Sax.' },
-  { key: 'noir', group: 'Mystery & crime', name: 'Crime noir', split: 54, reverb: 70, sound: 'b-rain', parts: { right: scP(153, 0, 105), left: scP(9, -1, 95) },
+  { key: 'noir', group: 'Mystery & crime', name: 'Crime noir', split: 54, reverb: 70, sound: null, parts: { right: scP(153, 0, 105), left: scP(9, -1, 95) },
     tip: 'C# minor, rhythmic bass, slow descending chromatic chords.' },
-  { key: 'lynch', group: 'Mystery & crime', name: 'David Lynch', split: 54, reverb: 100, sound: 'b-fluorescent-light', parts: { right: scP(282, 0, 100), left: scP(92, -1, 95), all: scP(663, 0, 60) },
-    tip: 'Slow, held chords. Add Cicada or Sprinkler by hand. Go to Flashback for a memory.' },
+  { key: 'lynch', group: 'Mystery & crime', name: 'David Lynch', split: 54, reverb: 100, sound: null, parts: { right: scP(282, 0, 100), left: scP(92, -1, 95), all: scP(663, 0, 60) },
+    tip: 'Slow, held chords. Go to Flashback for a memory.' },
   { key: 'flashback', group: 'Mystery & crime', name: 'Flashback / dream', split: 48, reverb: 120, sound: null, parts: { right: scP(673, 0, 100), left: scP(811, 0, 100) },
     tip: 'Hit a low key for the wobble into the memory, then play dreamy on top. Alternative left hand: 789 Feed.' },
-  { key: 'cops', group: 'Mystery & crime', name: '70s cop show', split: 54, reverb: 40, sound: 'b-city-street', parts: { right: scP(584, 0, 105), left: scP(81, -1, 95) },
+  { key: 'cops', group: 'Mystery & crime', name: '70s cop show', split: 54, reverb: 40, sound: null, parts: { right: scP(584, 0, 105), left: scP(81, -1, 95) },
     tip: 'Rhythmic riff over I–V. Alternative right hand: 143 Funky Brass.' },
   { key: 'chase', group: 'Horror', name: 'Horror chase', split: 54, reverb: 60, sound: null, parts: { right: scP(71, 1, 105), left: scP(115, -1, 100) },
     tip: 'Low E pressed hard, slow then faster. Stop with the volume knob, not the pedal. Cut to silence when it goes dark.' },
-  { key: 'house', group: 'Horror', name: "Someone's in the house", split: 48, reverb: 90, sound: 'b-fridge-air-con', parts: { right: scP(532, 0, 95), left: scP(816, 0, 105) },
+  { key: 'house', group: 'Horror', name: "Someone's in the house", split: 48, reverb: 90, sound: null, parts: { right: scP(532, 0, 95), left: scP(816, 0, 105) },
     tip: 'Hold the strings; slow footsteps on the bottom keys.' },
   { key: 'clown', group: 'Horror', name: 'Creepy clown', split: 54, reverb: 90, sound: null, parts: { right: scP(403, 1, 100), left: scP(50, -1, 90) },
     tip: 'Minor 3/4 waltz, chromatic up and down, dim7, clashing half steps.' },
-  { key: 'cave', group: 'Horror', name: 'Mystery cave', split: 54, reverb: 115, sound: 'b-dripping-water', parts: { right: scP(237, 0, 100), left: scP(124, -1, 95) },
+  { key: 'cave', group: 'Horror', name: 'Mystery cave', split: 54, reverb: 115, sound: null, parts: { right: scP(237, 0, 100), left: scP(124, -1, 95) },
     tip: 'Low notes held long, high dissonance on top, bass sliding down chromatically.' },
-  { key: 'darkking', group: 'Fantasy', name: 'The Dark King', split: 54, reverb: 100, sound: 'b-fire-crackling', parts: { right: scP(218, -1, 110), left: scP(293, 0, 100) },
+  { key: 'darkking', group: 'Fantasy', name: 'The Dark King', split: 54, reverb: 100, sound: null, parts: { right: scP(218, -1, 110), left: scP(293, 0, 100) },
     tip: 'Descending 4ths, moving chromatically over one low held note.' },
   { key: 'boss', group: 'Fantasy', name: 'Boss fight', split: 54, reverb: 50, sound: null, parts: { right: scP(110, 0, 105), left: scP(99, -1, 100) },
     tip: 'Parallel 4ths, racing repeated bass, shifting up and down chromatically.' },
   { key: 'pixie', group: 'Fantasy', name: 'Pixie magic', split: 54, reverb: 110, sound: null, parts: { right: scP(236, 0, 100), left: scP(125, 0, 95) },
     tip: 'Whole-tone arpeggios: C D E F# G# A# C.' },
-  { key: 'shire', group: 'Fantasy', name: 'The Shire', split: 54, reverb: 60, sound: 'b-farm-ambience', parts: { right: scP(621, 0, 100), left: scP(248, 0, 95) },
+  { key: 'shire', group: 'Fantasy', name: 'The Shire', split: 54, reverb: 60, sound: null, parts: { right: scP(621, 0, 100), left: scP(248, 0, 95) },
     tip: 'Open-fifth drone in the left hand, pentatonic tune on top.' },
-  { key: 'folkpub', group: 'Fantasy', name: 'Folk pub', split: 54, reverb: 40, sound: 'b-busy-restaurant', parts: { right: scP(244, 0, 105), left: scP(58, 0, 95) },
+  { key: 'folkpub', group: 'Fantasy', name: 'Folk pub', split: 54, reverb: 40, sound: null, parts: { right: scP(244, 0, 105), left: scP(58, 0, 95) },
     tip: 'Simple I–IV–V jigs.' },
   { key: 'planet', group: 'Sci-fi', name: 'Alien planet', split: 54, reverb: 110, sound: null, parts: { right: scP(644, 0, 100), left: scP(659, 0, 95), all: scP(699, 1, 55) },
     tip: 'Airy and slow. 809 Burst for arrivals.' },
-  { key: 'alien', group: 'Sci-fi', name: 'Alien threat', split: 54, reverb: 90, sound: 'b-electricity', parts: { right: scP(145, 1, 105), left: scP(85, -1, 100) },
+  { key: 'alien', group: 'Sci-fi', name: 'Alien threat', split: 54, reverb: 90, sound: null, parts: { right: scP(145, 1, 105), left: scP(85, -1, 100) },
     tip: 'Loud tritone chords up and down the whole-tone scale, high, over one long distorted bass note.' },
   { key: 'sitcom', group: 'Comedy & fun', name: 'Sitcom', split: 54, reverb: 30, sound: null, parts: { right: scP(22, 0, 105), left: scP(93, 0, 100) },
-    tip: 'Seinfeld stings: right hand 143 Funky Brass. Doorbell for entrances.' },
+    tip: 'Seinfeld stings: right hand 143 Funky Brass.' },
   { key: 'slapstick', group: 'Comedy & fun', name: 'Slapstick', split: 54, reverb: 30, sound: null, parts: { right: scP(172, 0, 105), left: scP(156, 0, 100) },
-    tip: 'Bumbling oom-pah. Keep Sad trombone ready.' },
+    tip: 'Bumbling oom-pah.' },
   { key: 'videogame', group: 'Comedy & fun', name: 'Video game', split: 54, reverb: 20, sound: null, parts: { right: scP(197, 0, 100), left: scP(513, 0, 100) },
     tip: 'Tetris-style tunes.' },
-  { key: 'romcom', group: 'Romance & drama', name: 'Rom-com', split: 54, reverb: 70, sound: 'b-busy-restaurant', parts: { right: scP(283, 0, 100), left: scP(13, 0, 95) },
-    tip: 'Am–F–C–G (vi–IV–I–V). Turn the restaurant down low.' },
-  { key: 'slowjam', group: 'Romance & drama', name: 'Slow jam', split: 54, reverb: 80, sound: 'b-fire-crackling', parts: { right: scP(168, 0, 105), left: scP(17, 0, 95) },
+  { key: 'romcom', group: 'Romance & drama', name: 'Rom-com', split: 54, reverb: 70, sound: null, parts: { right: scP(283, 0, 100), left: scP(13, 0, 95) },
+    tip: 'Am–F–C–G (vi–IV–I–V).' },
+  { key: 'slowjam', group: 'Romance & drama', name: 'Slow jam', split: 54, reverb: 80, sound: null, parts: { right: scP(168, 0, 105), left: scP(17, 0, 95) },
     tip: 'Major blues scale, R&B chords.' },
-  { key: 'ballad80s', group: 'Romance & drama', name: '80s power ballad', split: 54, reverb: 90, sound: 'b-rain', parts: { right: scP(16, 0, 105), left: scP(116, 0, 95) },
+  { key: 'ballad80s', group: 'Romance & drama', name: '80s power ballad', split: 54, reverb: 90, sound: null, parts: { right: scP(16, 0, 105), left: scP(116, 0, 95) },
     tip: 'Switch to 140 80s Brass for the key change.' },
-  { key: 'elevator', group: 'Places & world', name: 'Elevator / waiting room', split: 54, reverb: 40, sound: 'b-fridge-air-con', parts: { right: scP(14, 0, 100), left: scP(90, 0, 95) },
-    tip: 'Dm9–G13–Cmaj9–A7 at 100–140 bpm. Airport chime as the lift “ding”.' },
+  { key: 'elevator', group: 'Places & world', name: 'Elevator / waiting room', split: 54, reverb: 40, sound: null, parts: { right: scP(14, 0, 100), left: scP(90, 0, 95) },
+    tip: 'Dm9–G13–Cmaj9–A7 at 100–140 bpm.' },
   { key: 'bossa', group: 'Places & world', name: 'Bossa nova', split: 54, reverb: 50, sound: null, parts: { right: scP(175, 0, 100), left: scP(72, 0, 95) },
     tip: 'C6/9–A7#5–Dm11–G9#5.' },
-  { key: 'samba', group: 'Places & world', name: 'Samba', split: 54, reverb: 40, sound: 'b-city-street', parts: { right: scP(160, 0, 105), left: scP(69, 0, 95) },
+  { key: 'samba', group: 'Places & world', name: 'Samba', split: 54, reverb: 40, sound: null, parts: { right: scP(160, 0, 105), left: scP(69, 0, 95) },
     tip: 'Samba whistle: Keyboard panel, search “whistle” (Standard Kit 1).' },
-  { key: 'havana', group: 'Places & world', name: 'Havana club', split: 54, reverb: 40, sound: 'b-nightclub', parts: { right: scP(146, 0, 105), left: scP(2, 0, 95) },
+  { key: 'havana', group: 'Places & world', name: 'Havana club', split: 54, reverb: 40, sound: null, parts: { right: scP(146, 0, 105), left: scP(2, 0, 95) },
     tip: 'Montuno pattern in the left hand.' },
   { key: 'tropical', group: 'Places & world', name: 'Tropical island', split: 54, reverb: 50, sound: null, parts: { right: scP(288, 0, 100), left: scP(409, 0, 95) },
     tip: 'Calypso C–F–G–C. Alternative: 408 Hard Vibraphone.' },
-  { key: 'desert', group: 'Places & world', name: 'Arabian desert', split: 54, reverb: 70, sound: 'b-cicada', parts: { right: scP(170, 0, 105), left: scP(255, -1, 95) },
+  { key: 'desert', group: 'Places & world', name: 'Arabian desert', split: 54, reverb: 70, sound: null, parts: { right: scP(170, 0, 105), left: scP(255, -1, 95) },
     tip: 'G harmonic minor with a sharp 4th; add the flat 2nd for mystery.' },
-  { key: 'mayan', group: 'Places & world', name: 'Mayan temple', split: 54, reverb: 90, sound: 'b-river-with-frogs', parts: { right: scP(183, 0, 100), left: scP(413, 0, 95) },
+  { key: 'mayan', group: 'Places & world', name: 'Mayan temple', split: 54, reverb: 90, sound: null, parts: { right: scP(183, 0, 100), left: scP(413, 0, 95) },
     tip: 'Pentatonic, then Dorian when the tension rises.' },
-  { key: 'bollywood', group: 'Places & world', name: 'Bollywood', split: 54, reverb: 50, sound: 'b-city-street', parts: { right: scP(262, 0, 105), left: scP(269, 0, 100) } },
+  { key: 'bollywood', group: 'Places & world', name: 'Bollywood', split: 54, reverb: 50, sound: null, parts: { right: scP(262, 0, 105), left: scP(269, 0, 100) } },
   { key: 'showdown', group: 'Places & world', name: 'Western showdown', split: 54, reverb: 90, sound: null, parts: { right: scP(60, 0, 105), left: scP(124, -1, 95) },
     tip: 'Start in silence. Bare fifths (C–G, F–C), no third. 791 Horse for riding off.' },
 ];
@@ -1717,6 +1717,21 @@ async function scLoad() {
     if (names.has(x.name.toLowerCase())) continue;
     list.push({ id: scId(), ...JSON.parse(JSON.stringify(x)) });
     added++;
+  }
+  // One-time cleanup (25 Oct 2026): starter scenes no longer start a board sound. Remove it from starter
+  // scenes already saved on this device; scenes James made himself keep theirs.
+  let noSound = null;
+  try { noSound = await store.getMeta('kbScenesNoSound'); } catch {}
+  if (!noSound && kbGet('kb-scenes-nosound') !== '1') {
+    for (const x of list) {
+      const st = SC_STARTERS.find(st => (x.key && st.key === x.key) || st.name === x.name);
+      if (!st) continue;
+      x.sound = null;
+      // Tips that pointed at board sounds, if still as first shipped, get the new wording.
+      if (x.tip && /Add Cicada or Sprinkler|Doorbell for entrances|Keep Sad trombone ready|Turn the restaurant down low|Airport chime as the lift/.test(x.tip)) x.tip = st.tip;
+    }
+    try { store.setMeta('kbScenesNoSound', true); } catch {}
+    kbSet('kb-scenes-nosound', '1');
   }
   sc.list = list; sc.loaded = true;
   scSave();
