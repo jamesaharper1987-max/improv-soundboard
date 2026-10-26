@@ -211,9 +211,12 @@ dialog::backdrop{background:var(--scrim)}
 .kb-nolink .btn{min-height:40px;padding:0 13px;font-size:.92rem}
 .kb-gear{flex:none;width:44px;min-height:44px;padding:0!important;display:inline-grid;place-items:center}
 .kb-gear svg{width:22px;height:22px}
-#kb-toggle{position:relative}
-#kb-toggle.linked::after{content:"";position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--loop);box-shadow:0 0 6px var(--loop)}
-#kb-toggle.btn-on.linked::after{box-shadow:none}
+#more-btn{position:relative;width:48px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+#more-btn svg{width:24px;height:24px}
+#more-btn.linked::after{content:"";position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--loop);box-shadow:0 0 6px var(--loop)}
+#menu{margin:0;inset:auto;top:calc(var(--bar-h,72px) - 6px);right:16px;width:min(270px,calc(100vw - 32px));padding:8px;border:1.5px solid var(--rule);border-radius:16px;background:var(--deck);color:var(--ink)}
+#menu::backdrop{background:rgba(0,0,0,.3)}
+#menu .btn{display:block;width:100%;margin:4px 0;text-align:left}
 /* panel beside the board on wide screens: the board reflows into the space on the left */
 @media (min-width:700px){
   body.kb-open #board{margin-right:calc(min(420px,100vw) + 4px)}
@@ -325,9 +328,9 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
       <p id="status-line">Loading board…</p>
     </div>
     <div class="actions">
-      <button class="btn" id="kb-toggle" type="button" aria-pressed="false" aria-controls="kb-panel">Keyboard</button>
-      <button class="btn" id="edit-toggle" type="button" aria-pressed="false">Edit board</button>
+      <button class="btn btn-on" id="edit-toggle" type="button" hidden>Done editing</button>
       <button class="btn btn-stop" id="stop-all" type="button" disabled>Stop all</button>
+      <button class="btn btn-icon" id="more-btn" type="button" aria-label="Menu" aria-haspopup="dialog" title="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   </div>
   <div class="tools" id="edit-tools" hidden>
@@ -376,6 +379,11 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
   <p class="kb-foot" id="kb-foot">Yamaha PSR-EW425: turn the dial to the big number. A category button jumps to the first voice of that group.</p>
 </aside>
 
+<dialog id="menu" aria-label="Menu">
+  <button class="btn" id="kb-toggle" type="button" aria-pressed="false" aria-controls="kb-panel">Show keyboard panel</button>
+  <button class="btn" id="edit-open" type="button">Edit board</button>
+  <button class="btn" id="menu-kbs" type="button" hidden>Keyboard settings</button>
+</dialog>
 <dialog id="kb-settings" aria-labelledby="kbs-title">
   <div class="ed-head"><h2 id="kbs-title">Keyboard settings</h2></div>
   <div class="ed-body">
@@ -1338,15 +1346,17 @@ function toast(msg) {
 $('#go').addEventListener('click', startShow);
 $('#stop-all').addEventListener('click', stopAll);
 $('#add-sound').addEventListener('click', () => openEditor(null));
-$('#edit-toggle').addEventListener('click', () => {
-  editMode = !editMode;
-  const b = $('#edit-toggle');
-  b.textContent = editMode ? 'Done' : 'Edit board';
-  b.classList.toggle('btn-on', editMode);
-  b.setAttribute('aria-pressed', String(editMode));
-  $('#edit-tools').hidden = !editMode;
+// Edit board lives in the ☰ menu (25 Oct 2026); while editing, a "Done editing" button sits in the top bar.
+function setEdit(on) {
+  editMode = on;
+  $('#edit-toggle').hidden = !on;
+  $('#edit-tools').hidden = !on;
   renderBoard();
-});
+}
+$('#edit-toggle').addEventListener('click', () => setEdit(false));
+$('#more-btn').addEventListener('click', () => $('#menu').showModal());
+$('#menu').addEventListener('click', e => { if (e.target === e.currentTarget || e.target.closest('.btn')) $('#menu').close(); });
+$('#edit-open').addEventListener('click', () => setEdit(true));
 
 /* ================= keyboard voice lookup (Yamaha PSR-EW425) ================= */
 // A searchable copy of the keyboard's Voice List, so a sound can be found by name and
@@ -1451,9 +1461,29 @@ function kbRender() {
   list.replaceChildren(...shown.map(r => r.v ? kbVoiceRow(r.v, terms) : kbKitRow(r.k, terms)));
   if (!rows.length) list.append(h('li', { class: 'kb-empty' }, 'No voice matches that. Try a shorter word, or “All”.'));
   liveMark();
+  kbWrap(list, shown.length);
   count.textContent = !terms.length ? '' : rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Type to narrow it down.` : `${rows.length} match${rows.length === 1 ? '' : 'es'}`;
-  list.scrollTop = 0;
 }
+// Endless list (25 Oct 2026): when the list is longer than the screen it is drawn three times, and the
+// scroll position is moved by one copy whenever it leaves the middle copy, so …819, 820, 1, 2… goes round
+// like a wheel (also for a search or filter result). Clicks are handled on the list, so copies just work.
+function kbWrap(list, n) {
+  kb.wrapH = 0;
+  list.scrollTop = 0;
+  if (n < 2 || !list.clientHeight) return;
+  const first = list.children[0], last = list.children[n - 1];
+  const H = last.offsetTop + last.offsetHeight - first.offsetTop;
+  if (H <= list.clientHeight) return; // everything fits: nothing to go round
+  const rows = [...list.children].slice(0, n);
+  for (let k = 0; k < 2; k++) { const f = document.createDocumentFragment(); for (const li of rows) f.append(li.cloneNode(true)); list.append(f); }
+  kb.wrapH = list.children[n].offsetTop - first.offsetTop;
+  list.scrollTop = kb.wrapH; // start at voice 1 of the middle copy
+}
+$('#kb-list').addEventListener('scroll', e => {
+  const H = kb.wrapH, el = e.currentTarget; if (!H) return;
+  if (el.scrollTop < H * 0.5) el.scrollTop += H;
+  else if (el.scrollTop > H * 1.5) el.scrollTop -= H;
+}, { passive: true });
 function kbChips() {
   $('#kb-chips').replaceChildren(...KB_FILTERS.map(([id, label]) => h('button', {
     class: 'kb-chip', type: 'button', 'aria-pressed': String(kb.filter === id),
@@ -1461,16 +1491,16 @@ function kbChips() {
   }, label)));
 }
 function setBarHeight() { document.documentElement.style.setProperty('--bar-h', $('.bar').getBoundingClientRect().bottom + 'px'); }
-async function kbToggle(force) {
+async function kbToggle(force, quiet) {
   kb.open = force ?? !kb.open;
   $('#kb-panel').hidden = !kb.open;
   document.body.classList.toggle('kb-open', kb.open);
   const b = $('#kb-toggle');
-  b.classList.toggle('btn-on', kb.open);
+  b.textContent = kb.open ? 'Hide keyboard panel' : 'Show keyboard panel';
   b.setAttribute('aria-pressed', String(kb.open));
   if (!kb.open) { $('#kb-q').blur(); return; }
   setBarHeight();
-  if (kb.mode === 'voices') $('#kb-q').focus(); // inside the tap, so the iPad keyboard comes up
+  if (kb.mode === 'voices' && !quiet) $('#kb-q').focus(); // inside the tap, so the iPad keyboard comes up
   if (mid.supported && !mid.access && kbGet('kb-midi') === 'on') midiConnect();
   if (!kb.data) {
     $('#kb-count').textContent = 'Loading the voice list…';
@@ -1506,7 +1536,7 @@ function midiRefresh() {
   $('#kb-link-more').hidden = !on;
   $('#kb-nolink').hidden = on;
   $('#kb-nolink-text').textContent = mid.access ? 'No keyboard found. Check the USB cable.' : 'Keyboard not linked';
-  $('#kb-toggle').classList.toggle('linked', on);
+  $('#more-btn').classList.toggle('linked', on);
   $('#kb-ch').hidden = $('#kb-test').hidden = !on;
   $('.kb-thru').hidden = !on;
   $('#kb-thru').checked = mid.thru;
@@ -1627,9 +1657,11 @@ if (mid.supported) {
   $('#kb-nolink').hidden = false;
   $('#kb-gear').hidden = false;
   $('#kbs-open').hidden = false;
+  $('#menu-kbs').hidden = false;
   const openSettings = () => { midiRefresh(); $('#kb-settings').showModal(); };
   $('#kb-gear').addEventListener('click', openSettings);
   $('#kbs-open').addEventListener('click', openSettings);
+  $('#menu-kbs').addEventListener('click', openSettings);
   $('#kbs-done').addEventListener('click', () => $('#kb-settings').close());
   $('#kb-nolink-connect').addEventListener('click', async () => { if (mid.access) midiRefresh(); else await midiConnect(); if (!mid.out) openSettings(); });
   $('#kb-ch').replaceChildren(...Array.from({ length: 16 }, (_, i) => h('option', { value: i, selected: i === mid.ch }, 'Channel ' + (i + 1))));
@@ -2100,8 +2132,10 @@ if (mid.supported) {
   $('#kb-pick-cancel').addEventListener('click', scPickDone);
 }
 
-$('#kb-toggle').addEventListener('click', () => kbToggle());
-$('#kb-close').addEventListener('click', () => kbToggle(false));
+$('#kb-toggle').addEventListener('click', () => { kbToggle(!kb.open, true); kbSet('kb-open', kb.open ? 'on' : 'off'); });
+$('#kb-close').addEventListener('click', () => { kbToggle(false); kbSet('kb-open', 'off'); });
+// On the iPad (700 px or wider) the Keyboard panel stays open beside the board unless it was closed.
+if (matchMedia('(min-width:700px)').matches && kbGet('kb-open') !== 'off') kbToggle(true, true);
 $('#kb-q').addEventListener('input', kbRender);
 $('#kb-q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } else if (e.key === 'Escape') kbToggle(false); });
 $('#kb-clear').addEventListener('click', () => { $('#kb-q').value = ''; kbRender(); $('#kb-q').focus(); });
