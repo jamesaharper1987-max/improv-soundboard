@@ -179,8 +179,9 @@ dialog::backdrop{background:var(--scrim)}
 .kb-name mark{background:none;color:var(--live);text-decoration:underline;text-underline-offset:3px}
 .kb-meta{font-size:.82rem;color:var(--ink-dim);margin-top:3px}
 .kb-meta .midi{color:var(--ink-faint);font-variant-numeric:tabular-nums}
-.kb-star{flex:none;width:44px;height:44px;border:none;background:transparent;color:var(--ink-faint);font-size:1.45rem;cursor:pointer;border-radius:10px}
-.kb-star[aria-pressed="true"]{color:var(--live)}
+.kb-hands{flex:none;display:flex;gap:5px}
+.kb-hand{min-width:46px;height:40px;padding:0 8px;border-radius:9px;border:1.5px solid var(--rule);background:var(--deck);color:var(--ink-dim);font:800 .95rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
+.kb-hand[aria-pressed="true"]{background:var(--loop);border-color:var(--loop);color:var(--house)}
 .kb-empty{padding:24px 16px;color:var(--ink-dim)}
 .kb-link{display:flex;flex-direction:column;gap:10px;padding:6px 6px 6px 12px;border-radius:12px;background:var(--deck-2);border:1.5px solid var(--rule)}
 .kb-link.on{border-color:var(--loop)}
@@ -277,6 +278,22 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
 .sc-step button{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--rule);background:var(--deck);color:var(--ink);font:700 1.2rem/1 var(--f-body);cursor:pointer}
 .sc-step output{min-width:5.2ch;text-align:center;font-weight:700}
 .sc-mini{min-height:40px!important;padding:0 12px!important;font-size:.9rem!important}
+/* Live mix: the tap switch on the Voices list and the "Now on the keys" box */
+.kb-seg{flex:1;display:flex;gap:3px;padding:3px;border-radius:11px;background:var(--deck-2);border:1.5px solid var(--rule)}
+.kb-seg button{flex:1;min-height:38px;min-width:0;padding:0 2px;border:none;border-radius:8px;background:transparent;color:var(--ink-dim);font:800 .95rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.03em;cursor:pointer}
+.kb-seg button[aria-pressed="true"]{background:var(--loop);color:var(--house)}
+.kb-seg.sm{flex:none;padding:2px}
+.kb-seg.sm button{min-height:30px;padding:0 7px;font-size:.8rem}
+.kb-live{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding:6px 6px 6px 10px;border-radius:12px;border:1.5px solid var(--loop);background:rgba(95,196,216,.08);font-size:.88rem}
+.kb-live-h{display:flex;align-items:center;gap:8px}
+.kb-live-h .btn{flex:none}
+.kb-live-h b{flex:1;min-width:0;color:var(--loop);font:800 .95rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.06em}
+.kb-live-row{display:flex;align-items:center;gap:6px;min-height:36px}
+.kb-live-row .z{flex:none;width:4.8ch;font-weight:800;color:var(--ink-dim)}
+.kb-live-row .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-live-row .v b{color:var(--loop);margin-right:5px;font-variant-numeric:tabular-nums}
+.kb-live .sc-x{width:34px;height:34px;flex:none}
+.kb-live .sc-step button{width:34px;height:34px}
 .sc-x{width:40px;height:40px;border-radius:10px;border:none;background:transparent;color:var(--ink-faint);font-size:1.3rem;cursor:pointer}
 .sc-learn{background:var(--live)!important;color:var(--live-ink)!important;border-color:var(--live)!important}
 .sc-foot{display:flex;flex-wrap:wrap;gap:10px}
@@ -352,7 +369,6 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
       <input type="search" id="kb-q" placeholder="Find a sound, e.g. whistle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="Search the keyboard's voices">
       <button class="kb-clear" id="kb-clear" type="button" aria-label="Clear search" hidden>×</button>
     </div>
-    <div class="kb-chips" id="kb-chips" role="group" aria-label="Filter"></div>
     <p class="kb-count" id="kb-count" aria-live="polite"></p>
   </div>
   <ul class="kb-list" id="kb-list"></ul>
@@ -379,6 +395,7 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
       <p class="kb-link-help" id="kb-thru-help" hidden>Your keys now play through this app, so the voice you tap here is the one you hear. If every note sounds twice, set <b>Local Control</b> to <b>Off</b> in the keyboard’s Function menu. Turn this switch off before unplugging, or the keys go quiet until Local Control is back on.</p>
       </div>
     </div>
+    <div class="kb-live" id="kb-live" hidden></div>
     <p class="help" style="margin:0;color:var(--ink-dim);font-size:.88rem">The keyboard links by USB (its USB TO HOST port). This only works in a browser with MIDI: MIDIWeb Browser on the iPad, or Chrome on a Mac.</p>
   </div>
   <div class="ed-foot"><span class="spacer"></span><button class="btn btn-primary" id="kbs-done" type="button">Done</button></div>
@@ -1336,7 +1353,7 @@ $('#edit-toggle').addEventListener('click', () => {
 // dialled up on the keyboard. Read-only: nothing is sent to the keyboard (Safari has no Web MIDI).
 const kb = { data: null, loading: null, filter: 'all', favs: new Set(), open: false, current: 0, mode: 'voices' };
 const KB_FILTERS = [
-  ['all', 'All'], ['fx', 'Sound effects'], ['favs', '★ Starred'],
+  ['all', 'All'], ['fx', 'Sound effects'],
   ['Piano', 'Piano'], ['Organ', 'Organ'], ['Guitar & Bass', 'Guitar & Bass'], ['Strings', 'Strings'],
   ['Brass', 'Brass'], ['Woodwind', 'Woodwind'], ['Synth', 'Synth'], ['Choir & Pad', 'Choir & Pad'],
   ['World', 'World'], ['Percussion & Drums', 'Drums'], ['Arpeggio', 'Arpeggio'], ['XGlite', 'XGlite'],
@@ -1395,25 +1412,17 @@ function kbHighlight(name, terms) {
   return el;
 }
 function kbVoiceRow(v, terms) {
-  const fav = kb.favs.has(v.n);
   const na = v.msb == null;
-  const midi = na ? (mid.out ? 'choose this one on the keyboard itself' : 'panel only, no MIDI number') : `MIDI ${v.msb}·${v.lsb}·${v.pc}`;
-  return h('li', { class: 'kb-item' + (kb.current === v.n ? ' on' : '') + (na && mid.out ? ' na' : ''), 'data-n': na ? null : v.n },
+  const hands = mid.out && sc.pick == null && !na;
+  return h('li', { class: 'kb-item' + (kbIsOn(v.n) ? ' on' : '') + (na && mid.out ? ' na' : ''), 'data-n': na ? null : v.n },
     h('span', { class: 'kb-num', 'aria-label': 'Voice ' + v.n }, String(v.n)),
-    h('div', { class: 'kb-txt' },
-      h('div', { class: 'kb-name' }, kbHighlight(v.name, terms)),
-      h('div', { class: 'kb-meta' }, v.cat === 'XGlite' ? 'XGlite · ' : `${v.cat}, ${kbOrdinal(v.pos)} in group · `, h('span', { class: 'midi' }, midi))),
-    h('button', { class: 'kb-star', type: 'button', 'aria-pressed': String(fav), 'aria-label': (fav ? 'Unstar ' : 'Star ') + v.name, onclick: e => {
-      if (kb.favs.has(v.n)) kb.favs.delete(v.n); else kb.favs.add(v.n);
-      saveFavs();
-      const on = kb.favs.has(v.n);
-      e.currentTarget.setAttribute('aria-pressed', String(on));
-      e.currentTarget.textContent = on ? '★' : '☆';
-      if (kb.filter === 'favs') kbRender();
-    } }, fav ? '★' : '☆'));
+    h('div', { class: 'kb-txt' }, h('div', { class: 'kb-name' }, kbHighlight(v.name, terms)),
+      na && mid.out ? h('div', { class: 'kb-meta' }, 'Choose this one on the keyboard itself') : null),
+    hands ? h('div', { class: 'kb-hands' }, ...[['L', 'left hand'], ['R', 'right hand'], ['Both', 'both hands']].map(([t, a]) =>
+      h('button', { class: 'kb-hand', type: 'button', 'data-hand': t, 'aria-pressed': 'false', 'aria-label': `${v.name} on the ${a}` }, t))) : null);
 }
 function kbKitRow(k, terms) {
-  return h('li', { class: 'kb-item' + (kb.current === k.kit ? ' on' : ''), 'data-n': k.kit },
+  return h('li', { class: 'kb-item' + (kbIsOn(k.kit) ? ' on' : ''), 'data-n': k.kit },
     h('span', { class: 'kb-num kit', 'aria-label': 'Voice ' + k.kit }, String(k.kit)),
     h('div', { class: 'kb-txt' },
       h('div', { class: 'kb-name' }, kbHighlight(k.name, terms)),
@@ -1426,7 +1435,7 @@ function kbRender() {
   const q = fold($('#kb-q').value);
   $('#kb-clear').hidden = !$('#kb-q').value;
   const terms = q ? q.split(' ') : [];
-  const f = kb.filter;
+  const f = 'all'; // the filter chips were removed (25 Oct): typing a word also finds a voice group
   const pass = v => f === 'all' || (f === 'fx' ? isFx(v.n) : f === 'favs' ? kb.favs.has(v.n) : v.cat === f);
   let rows;
   if (/^\d{1,3}$/.test(q)) {
@@ -1440,8 +1449,9 @@ function kbRender() {
   }
   const shown = rows.slice(0, 900);
   list.replaceChildren(...shown.map(r => r.v ? kbVoiceRow(r.v, terms) : kbKitRow(r.k, terms)));
-  if (!rows.length) list.append(h('li', { class: 'kb-empty' }, f === 'favs' && !terms.length ? 'Nothing starred yet. Tap ☆ next to a voice to keep it here.' : 'No voice matches that. Try a shorter word, or “All”.'));
-  count.textContent = rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Type to narrow it down.` : `${rows.length} match${rows.length === 1 ? '' : 'es'}`;
+  if (!rows.length) list.append(h('li', { class: 'kb-empty' }, 'No voice matches that. Try a shorter word, or “All”.'));
+  liveMark();
+  count.textContent = !terms.length ? '' : rows.length > shown.length ? `Showing ${shown.length} of ${rows.length}. Type to narrow it down.` : `${rows.length} match${rows.length === 1 ? '' : 'es'}`;
   list.scrollTop = 0;
 }
 function kbChips() {
@@ -1511,6 +1521,7 @@ function midiRefresh() {
   $('#kb-link-status').title = $('#kb-link-status').textContent;
   if (kb.data) kbRender();
   if (kb.mode === 'scenes' && sc.loaded) scRender();
+  liveUi();
 }
 async function midiConnect() {
   if (!mid.supported || mid.access) return;
@@ -1553,21 +1564,22 @@ function midiRelay(e) {
   const type = st & 0xF0, isNote = type === 0x80 || type === 0x90 || type === 0xA0;
   const on = type === 0x90 && d[2] > 0;
   // Scene editor: "Set from keyboard" takes the next key pressed as the split point.
-  if (sc.learn && on) { sc.learn = false; sc.draft.split = d[1]; scRender(); return; }
+  if (sc.learn && on) { sc.learn.split = d[1]; sc.learn = false; scRender(); liveUi(); return; }
   // A note that started in a scene must also stop where it started, even if the scene changed meanwhile.
   if (isNote && !on && sc.routes.has(d[1])) {
     for (const [c, n] of sc.routes.get(d[1])) relayOut([type | c, n, d[2]]);
     if (type !== 0xA0) sc.routes.delete(d[1]);
     return;
   }
-  const scene = sc.active && sc.list.find(x => x.id === sc.active);
+  const scene = scCur();
   // Choosing a voice on the keyboard itself ends the scene (last choice wins).
   if (scene && type === 0xC0) { scLeave(); }
   else if (scene) {
     const parts = scParts(scene);
     if (isNote) {
-      if (!on) return; // a note-off with no route: nothing is sounding
-      const dest = parts.filter(p => p.zone === 'all' || (p.zone === 'right') === (d[1] >= scene.split))
+      // A note-off with no route: started before the scene, on the single-voice channel.
+      if (!on) { relayOut([type | mid.ch, ...d.slice(1)]); return; }
+      const dest = parts.filter(p => p.zone === 'all' ? scInRange(p.range, d[1], scene.split) : p.zone.startsWith('right') === (d[1] >= scene.split))
         .map(p => [p.ch, Math.min(127, Math.max(0, d[1] + 12 * (p.oct || 0)))]);
       if (!dest.length) return;
       sc.routes.set(d[1], dest);
@@ -1607,7 +1619,7 @@ function kbSendVoice(n) {
   midiSend([0xB0 | c, 32, v.lsb]);
   midiSend([0xC0 | c, v.pc - 1]);
   kb.current = n;
-  for (const li of $$('#kb-list .kb-item')) li.classList.toggle('on', Number(li.dataset.n) === n);
+  liveMark();
   toast(`Keyboard → ${n} ${v.name}`);
 }
 if (mid.supported) {
@@ -1640,7 +1652,8 @@ if (mid.supported) {
     if (midiSend([0x90 | c, 60, 96])) setTimeout(() => midiSend([0x80 | c, 60, 0]), 700);
   });
   $('#kb-list').addEventListener('click', e => {
-    if (e.target.closest('.kb-star')) return;
+    const hb = e.target.closest('.kb-hand');
+    if (hb) { const li2 = hb.closest('.kb-item[data-n]'); if (li2) liveHand(hb.dataset.hand, Number(li2.dataset.n)); return; }
     const li = e.target.closest('.kb-item[data-n]');
     if (!li) { if (sc.pick != null && e.target.closest('.kb-item')) toast('That one can’t be chosen from here. Pick another voice.'); return; }
     if (sc.pick != null) scPicked(Number(li.dataset.n));
@@ -1653,6 +1666,8 @@ if (mid.supported) {
 // layer across the whole keyboard. Each part plays on its own MIDI channel (the chosen channel, +1, +2),
 // so the keyboard's tone generator plays all three voices at once. The app sends each key to the right parts.
 const SC_ZONES = [['right', 'Right hand'], ['left', 'Left hand'], ['all', 'Whole keyboard (layer)']];
+// The live mix can hold two voices per hand; the second ones use two more channels (chosen channel +3, +4).
+const SC_ALLZ = [...SC_ZONES, ['right2', 'Right hand 2'], ['left2', 'Left hand 2']];
 // Starter scenes. `key` is stable: a device that already has scenes gets any starter whose key it hasn't
 // been offered yet, once (see scLoad), so new starters reach existing devices and deleted ones stay deleted.
 // `group` drives the filter chips; `tip` is a playing note shown on the card while the scene is on.
@@ -1733,16 +1748,20 @@ const SC_STARTERS = [
   { key: 'showdown', group: 'Places & world', name: 'Western showdown', split: 54, reverb: 90, sound: null, parts: { right: scP(60, 0, 105), left: scP(124, -1, 95) },
     tip: 'Start in silence. Bare fifths (C–G, F–C), no third. 791 Horse for riding off.' },
 ];
-const sc = { list: [], loaded: false, active: null, routes: new Map(), draft: null, pick: null, learn: false, startedSound: null };
+const sc = { list: [], loaded: false, active: null, routes: new Map(), draft: null, pick: null, learn: false, startedSound: null, live: null };
 const scId = () => 'sc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function scParts(s) {
   const out = [];
-  SC_ZONES.forEach(([zone], i) => {
+  SC_ALLZ.forEach(([zone], i) => {
     const p = s.parts[zone];
     if (p && p.voice) out.push({ zone, ...p, ch: (mid.ch + i) % 16 });
   });
   return out;
 }
+// The scene that is playing now: a saved scene, or the live mix built from the Voices list.
+function scCur() { return sc.active === 'live' ? sc.live : sc.active ? sc.list.find(x => x.id === sc.active) : null; }
+// A layer can cover the whole keyboard (default) or only the right or left hand (dual right / dual left).
+function scInRange(r, note, split) { return r !== 'right' && r !== 'left' ? true : (r === 'right') === (note >= split); }
 async function scLoad() {
   if (sc.loaded) return;
   let list = null;
@@ -1809,7 +1828,7 @@ function scApply(s) {
   if (!mid.out) { toast('Link the keyboard first: tap Connect at the top of this panel.'); return; }
   if (!kb.data) return;
   if (!mid.thru) midiThru(true); // scenes need the keys to come through the app
-  for (let i = 0; i < 3; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); // all notes off on the scene channels
+  for (let i = 0; i < SC_ALLZ.length; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); // all notes off on the scene channels
   for (const p of scParts(s)) scSendPart(p, s.reverb);
   // Board sound: fade out the one the previous scene started, start this scene's.
   if (sc.startedSound && sc.startedSound !== s.sound && playing.has(sc.startedSound)) fadeSound(sc.startedSound);
@@ -1823,23 +1842,25 @@ function scApply(s) {
   toast(`Scene: ${s.name}${note}`);
   scRender();
 }
-function scLeave() { sc.active = null; if (kb.mode === 'scenes') scRender(); }
+function scLeave() { sc.active = null; if (kb.mode === 'scenes') scRender(); liveUi(); liveMark(); }
 function scSetMode(mode) {
   kb.mode = mode;
   $('#kb-panel').classList.toggle('mode-scenes', mode === 'scenes');
   $('#kb-scenes').hidden = mode !== 'scenes';
   for (const t of $$('#kb-tabs .kb-tab')) t.setAttribute('aria-selected', String(t.dataset.mode === mode));
   if (mode === 'scenes') { sc.pick = null; $('#kb-pickbar').hidden = true; $('#kb-list').classList.remove('kb-picking'); scLoad().then(scRender); }
+  liveUi();
 }
 function scSummary(s) {
   const lines = [];
-  for (const [zone, label] of SC_ZONES) {
+  for (const [zone, label] of SC_ALLZ) {
     const p = s.parts[zone]; if (!p || !p.voice) continue;
     const v = scVoice(p.voice);
     const extra = (p.oct ? ` (${p.oct > 0 ? '+' : '−'}${Math.abs(p.oct)} oct)` : '');
-    lines.push(h('li', null, label.replace(' (layer)', '') + ': ', h('b', null, `${p.voice} ${v ? v.name : ''}`), extra));
+    const rng = zone === 'all' && (p.range === 'right' || p.range === 'left') ? ` on the ${p.range} hand only` : '';
+    lines.push(h('li', null, (rng ? 'Layer' : label.replace(' (layer)', '')) + ': ', h('b', null, `${p.voice} ${v ? v.name : ''}`), rng + extra));
   }
-  if (s.parts.left?.voice && (s.parts.right?.voice)) lines.push(h('li', null, 'Split at ', h('b', null, noteName(s.split))));
+  if (((s.parts.left?.voice || s.parts.left2?.voice) && (s.parts.right?.voice || s.parts.right2?.voice)) || ['right', 'left'].includes(s.parts.all?.range)) lines.push(h('li', null, 'Split at ', h('b', null, noteName(s.split))));
   const snd = scSoundName(s.sound);
   if (snd) lines.push(h('li', null, 'Board sound: ', h('b', null, snd)));
   return lines;
@@ -1901,14 +1922,16 @@ function scEditor() {
         h('span', { class: 'lbl' }, 'Octave'),
         scStep(p.oct || 0, x => (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x), () => { p.oct = Math.max(-2, (p.oct || 0) - 1); scRender(); }, () => { p.oct = Math.min(2, (p.oct || 0) + 1); scRender(); }),
         h('span', { class: 'lbl', style: 'margin-left:8px' }, 'Volume'), vol));
+      if (zone === 'all') box.append(h('div', { class: 'sc-row' }, h('span', { class: 'lbl' }, 'Plays on'),
+        liveRangeSeg(p.range, r => { p.range = r; scRender(); })));
     }
     return box;
   });
-  const hasSplit = d.parts.left?.voice || d.parts.right?.voice;
+  const hasSplit = d.parts.left?.voice || d.parts.right?.voice || ['right', 'left'].includes(d.parts.all?.range);
   const split = h('div', { class: 'sc-row' },
     h('span', { class: 'lbl' }, 'Split point'),
     scStep(d.split, noteName, () => { d.split = Math.max(28, d.split - 1); scRender(); }, () => { d.split = Math.min(103, d.split + 1); scRender(); }),
-    mid.out && mid.thru ? h('button', { class: 'btn sc-mini' + (sc.learn ? ' sc-learn' : ''), type: 'button', onclick: () => { sc.learn = !sc.learn; scRender(); } }, sc.learn ? 'Press a key…' : 'Set from keyboard') : null);
+    mid.out && mid.thru ? h('button', { class: 'btn sc-mini' + (sc.learn ? ' sc-learn' : ''), type: 'button', onclick: () => { sc.learn = sc.learn ? false : d; scRender(); } }, sc.learn ? 'Press a key…' : 'Set from keyboard') : null);
   const rev = h('input', { type: 'range', min: 0, max: 127, step: 1, value: d.reverb ?? 64, 'aria-label': 'Reverb' });
   rev.style.setProperty('--fill', (rev.value / 127 * 100) + '%');
   rev.addEventListener('input', () => { d.reverb = Number(rev.value); rev.style.setProperty('--fill', (rev.value / 127 * 100) + '%'); });
@@ -1962,7 +1985,7 @@ function scPick(zone, label) {
   $('#kb-pick-text').textContent = `Choose the ${label.toLowerCase().replace(' (layer)', ' layer')} voice`;
   $('#kb-pickbar').hidden = false;
   $('#kb-list').classList.add('kb-picking');
-  $('#kb-q').value = ''; kbRender();
+  $('#kb-q').value = ''; kbRender(); liveUi();
   $('#kb-q').focus();
 }
 function scPickDone() {
@@ -1980,6 +2003,93 @@ function scPicked(n) {
   if (mid.out) { const i = SC_ZONES.findIndex(z => z[0] === sc.pick); scSendPart({ ...d.parts[sc.pick], ch: (mid.ch + i) % 16 }, d.reverb); }
   scPickDone();
 }
+/* ---- live mix: L / R / Both on each voice row. Up to two voices per hand; tapping the name replaces everything ---- */
+// sc.live.L / sc.live.R hold the voice numbers on each hand (oldest first); liveParts() turns them into scene parts.
+function kbIsOn(n) {
+  if (sc.active === 'live' && sc.live) return sc.live.L.includes(n) || sc.live.R.includes(n);
+  return !sc.active && kb.current === n;
+}
+function liveMark() {
+  const L = sc.active === 'live' && sc.live;
+  for (const li of $$('#kb-list .kb-item')) {
+    const n = Number(li.dataset.n);
+    li.classList.toggle('on', kbIsOn(n));
+    const one = !sc.active && kb.current === n; // a single voice on the whole keyboard shows as Both
+    const l = one || (!!L && L.L.includes(n)), r = one || (!!L && L.R.includes(n));
+    for (const b of li.querySelectorAll('.kb-hand'))
+      b.setAttribute('aria-pressed', String(b.dataset.hand === 'Both' ? l && r : b.dataset.hand === 'L' ? l && !r : r && !l));
+  }
+}
+function liveParts(L) {
+  const old = L.parts || {}, parts = {};
+  const keep = (z, n) => { if (!n) return; const o = Object.values(old).find(p => p && p.voice === n);
+    parts[z] = { voice: n, oct: o ? o.oct || 0 : 0, vol: o ? o.vol ?? 100 : 100 }; };
+  keep('right', L.R[0]); keep('right2', L.R[1]); keep('left', L.L[0]); keep('left2', L.L[1]);
+  L.parts = parts;
+}
+function liveHand(hand, n) {
+  const v = scVoice(n); if (!v || v.msb == null || !mid.out) return;
+  if (sc.active !== 'live' || !sc.live) {
+    // Start from what is on the keys now: the scene that's playing, else the single voice chosen here.
+    const cur = scCur(), P = cur ? cur.parts || {} : {};
+    const pick = zs => [...new Set(zs.map(z => P[z]?.voice).filter(Boolean))].slice(0, 2);
+    sc.live = cur
+      ? { id: 'live', from: cur.name, split: cur.split ?? 54, reverb: cur.reverb ?? 64, sound: cur.sound || null, parts: JSON.parse(JSON.stringify(P)),
+          L: pick(['left', 'left2', 'all']), R: pick(['right', 'right2', 'all']) }
+      : { id: 'live', from: null, split: sc.live?.split ?? 54, reverb: 64, sound: null, parts: {},
+          L: kb.current ? [kb.current] : [], R: kb.current ? [kb.current] : [] };
+  }
+  const L = sc.live;
+  const add = a => { if (!a.includes(n)) { a.push(n); if (a.length > 2) a.shift(); } };
+  const drop = a => { const i = a.indexOf(n); if (i >= 0) a.splice(i, 1); };
+  if (hand === 'L') { if (L.L.includes(n) && !L.R.includes(n)) drop(L.L); else { add(L.L); drop(L.R); } }
+  else if (hand === 'R') { if (L.R.includes(n) && !L.L.includes(n)) drop(L.R); else { add(L.R); drop(L.L); } }
+  else if (L.L.includes(n) && L.R.includes(n)) { drop(L.L); drop(L.R); }
+  else { add(L.L); add(L.R); }
+  if (!L.L.length && !L.R.length) { liveOff(); scLeave(); toast('Nothing left on the keys. Tap a voice to start again.'); return; }
+  liveSend();
+}
+// Send every part to its channel; channels left empty get All Notes Off. No All Notes Off on the others,
+// so notes being held keep sounding while voices are added.
+function liveSend() {
+  const L = sc.live;
+  liveParts(L);
+  if (!mid.thru) { const y = $('#kb-list').scrollTop; midiThru(true); $('#kb-list').scrollTop = y; } // keys must come through the app
+  const parts = scParts(L), used = new Set(parts.map(p => p.ch));
+  for (let i = 0; i < SC_ALLZ.length; i++) { const c = (mid.ch + i) % 16; if (!used.has(c)) relayOut([0xB0 | c, 123, 0]); }
+  for (const p of parts) scSendPart(p, L.reverb);
+  sc.active = 'live'; kb.current = 0;
+  if (kb.mode === 'scenes') scRender();
+  liveUi(); liveMark();
+}
+function liveOff() { if (mid.out) for (let i = 0; i < SC_ALLZ.length; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); }
+function liveSave() {
+  const L = sc.live; if (!L) return;
+  liveParts(L);
+  sc.draft = { id: null, name: L.from ? L.from + ' (live)' : '', group: 'My scenes', split: L.split, reverb: L.reverb, sound: L.sound || null, parts: JSON.parse(JSON.stringify(L.parts)) };
+  sc.learn = false;
+  try { $('#kb-settings').close(); } catch {}
+  scSetMode('scenes');
+  $('#kb-scenes').scrollTop = 0;
+}
+function liveUi() {
+  const box = $('#kb-live');
+  if (!box) return;
+  const L = sc.active === 'live' && sc.live;
+  box.hidden = !(mid.out && L); // lives in Keyboard settings, so it never takes room from the voice list
+  if (box.hidden) return;
+  const line = (lbl, a) => h('div', { class: 'kb-live-row' }, h('span', { class: 'z' }, lbl),
+    h('span', { class: 'v' }, ...(a.length ? a.flatMap((n, i) => [i ? ' + ' : '', h('b', null, String(n)), scVoice(n)?.name || '']) : ['nothing'])));
+  const split = L.L.length && L.R.length && L.L.join() !== L.R.join()
+    ? h('div', { class: 'kb-live-row' }, h('span', { class: 'z' }, 'Split'),
+        scStep(L.split, noteName, () => { L.split = Math.max(28, L.split - 1); liveUi(); }, () => { L.split = Math.min(103, L.split + 1); liveUi(); }),
+        h('button', { class: 'btn sc-mini' + (sc.learn === L ? ' sc-learn' : ''), type: 'button', onclick: () => { sc.learn = sc.learn === L ? false : L; liveUi(); } }, sc.learn === L ? 'Press a key…' : 'Set from keyboard'))
+    : null;
+  box.replaceChildren(
+    h('div', { class: 'kb-live-h' }, h('b', null, 'Live mix: now on the keys'),
+      h('button', { class: 'btn sc-mini', type: 'button', onclick: liveSave }, 'Save as scene')),
+    line('Left', L.L), line('Right', L.R), split);
+}
 if (mid.supported) {
   $('#kb-tabs .kb-tab[data-mode="scenes"]').hidden = false;
   for (const t of $$('#kb-tabs .kb-tab')) t.addEventListener('click', () => {
@@ -1990,7 +2100,6 @@ if (mid.supported) {
   $('#kb-pick-cancel').addEventListener('click', scPickDone);
 }
 
-kbChips();
 $('#kb-toggle').addEventListener('click', () => kbToggle());
 $('#kb-close').addEventListener('click', () => kbToggle(false));
 $('#kb-q').addEventListener('input', kbRender);
