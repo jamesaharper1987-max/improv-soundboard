@@ -180,6 +180,8 @@ dialog::backdrop{background:var(--scrim)}
 .kb-meta{font-size:.82rem;color:var(--ink-dim);margin-top:3px}
 .kb-meta .midi{color:var(--ink-faint);font-variant-numeric:tabular-nums}
 .kb-hands{flex:none;display:flex;gap:5px}
+/* voices on the keys now: pinned above the list, so what's selected is always in view */
+.kb-pins{flex:none;max-height:40%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin:0;padding:0;list-style:none;background:rgba(95,196,216,.07);border-bottom:2px solid var(--loop)}
 .kb-hand{min-width:46px;height:40px;padding:0 8px;border-radius:9px;border:1.5px solid var(--rule);background:var(--deck);color:var(--ink-dim);font:800 .95rem/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em;cursor:pointer}
 .kb-hand[aria-pressed="true"]{background:var(--loop);border-color:var(--loop);color:var(--house)}
 .kb-empty{padding:24px 16px;color:var(--ink-dim)}
@@ -219,7 +221,9 @@ dialog::backdrop{background:var(--scrim)}
 #menu .btn{display:block;width:100%;margin:4px 0;text-align:left}
 /* panel beside the board on wide screens: the board reflows into the space on the left */
 @media (min-width:700px){
-  body.kb-open #board{margin-right:calc(min(420px,100vw) + 4px)}
+  body.kb-open #board,body.kb-open .bar{margin-right:calc(min(420px,100vw) + 4px)}
+  /* the panel runs the full height of the screen; the top bar (Stop all, menu) sits to its left */
+  body.kb-open .kb{top:0;padding-top:env(safe-area-inset-top,0px)}
   body.kb-open .np{right:min(420px,100vw)}
 }
 /* ---------- now playing ---------- */
@@ -256,7 +260,7 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
 .kb-pickbar span{flex:1;min-width:0}
 .kb-pickbar .btn{min-height:40px;background:var(--live-ink);color:var(--live);border-color:var(--live-ink)}
 .kb-picking .kb-item[data-n]{cursor:pointer}
-.kb.mode-scenes .kb-search,.kb.mode-scenes .kb-chips,.kb.mode-scenes .kb-count,.kb.mode-scenes .kb-list,.kb.mode-scenes .kb-foot{display:none!important}
+.kb.mode-scenes .kb-pins,.kb.mode-scenes .kb-search,.kb.mode-scenes .kb-chips,.kb.mode-scenes .kb-count,.kb.mode-scenes .kb-list,.kb.mode-scenes .kb-foot{display:none!important}
 .sc-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 16px 20px;display:flex;flex-direction:column;gap:10px}
 .sc-top{flex:none;display:flex;align-items:center;gap:10px}
 .sc-top p{flex:1;margin:0;font-size:.85rem;color:var(--ink-dim)}
@@ -374,6 +378,7 @@ body.np-on .toast,body.np-on .confirm{bottom:calc(var(--np-h,70px) + 14px)}
     </div>
     <p class="kb-count" id="kb-count" aria-live="polite"></p>
   </div>
+  <ul class="kb-pins" id="kb-pins" aria-label="On the keys now" hidden></ul>
   <ul class="kb-list" id="kb-list"></ul>
   <div class="sc-wrap" id="kb-scenes" hidden></div>
   <p class="kb-foot" id="kb-foot">Yamaha PSR-EW425: turn the dial to the big number. A category button jumps to the first voice of that group.</p>
@@ -1354,7 +1359,13 @@ function setEdit(on) {
   renderBoard();
 }
 $('#edit-toggle').addEventListener('click', () => setEdit(false));
-$('#more-btn').addEventListener('click', () => $('#menu').showModal());
+$('#more-btn').addEventListener('click', () => {
+  // Drop the menu down from the ☰ button, wherever the button is (it moves left when the panel is open).
+  const r = $('#more-btn').getBoundingClientRect(), m = $('#menu');
+  m.style.top = (r.bottom + 6) + 'px';
+  m.style.right = Math.max(16, innerWidth - r.right) + 'px';
+  m.showModal();
+});
 $('#menu').addEventListener('click', e => { if (e.target === e.currentTarget || e.target.closest('.btn')) $('#menu').close(); });
 $('#edit-open').addEventListener('click', () => setEdit(true));
 
@@ -1609,7 +1620,7 @@ function midiRelay(e) {
     if (isNote) {
       // A note-off with no route: started before the scene, on the single-voice channel.
       if (!on) { relayOut([type | mid.ch, ...d.slice(1)]); return; }
-      const dest = parts.filter(p => p.zone === 'all' ? scInRange(p.range, d[1], scene.split) : p.zone.startsWith('right') === (d[1] >= scene.split))
+      const dest = parts.filter(p => p.zone.startsWith('all') ? scInRange(p.range, d[1], scene.split) : p.zone.startsWith('right') === (d[1] >= scene.split))
         .map(p => [p.ch, Math.min(127, Math.max(0, d[1] + 12 * (p.oct || 0)))]);
       if (!dest.length) return;
       sc.routes.set(d[1], dest);
@@ -1683,14 +1694,16 @@ if (mid.supported) {
     const c = mid.ch;
     if (midiSend([0x90 | c, 60, 96])) setTimeout(() => midiSend([0x80 | c, 60, 0]), 700);
   });
-  $('#kb-list').addEventListener('click', e => {
+  const onVoiceClick = e => {
     const hb = e.target.closest('.kb-hand');
     if (hb) { const li2 = hb.closest('.kb-item[data-n]'); if (li2) liveHand(hb.dataset.hand, Number(li2.dataset.n)); return; }
     const li = e.target.closest('.kb-item[data-n]');
     if (!li) { if (sc.pick != null && e.target.closest('.kb-item')) toast('That one can’t be chosen from here. Pick another voice.'); return; }
     if (sc.pick != null) scPicked(Number(li.dataset.n));
     else if (mid.out) kbSendVoice(Number(li.dataset.n));
-  });
+  };
+  $('#kb-list').addEventListener('click', onVoiceClick);
+  $('#kb-pins').addEventListener('click', onVoiceClick);
 }
 
 /* ---- scenes: one tap sets up splits and layers of keyboard voices (keys play through the app) ---- */
@@ -1700,6 +1713,24 @@ if (mid.supported) {
 const SC_ZONES = [['right', 'Right hand'], ['left', 'Left hand'], ['all', 'Whole keyboard (layer)']];
 // The live mix can hold two voices per hand; the second ones use two more channels (chosen channel +3, +4).
 const SC_ALLZ = [...SC_ZONES, ['right2', 'Right hand 2'], ['left2', 'Left hand 2']];
+// Any further parts (the live mix has no limit per hand: right3, left4, all2…) take the next free
+// channels after these five, skipping channel 10 (the drum channel); at most 16 channels in all.
+function scZoneLabel(z) {
+  const m = /^(right|left|all)(\d*)$/.exec(z) || [];
+  const base = { right: 'Right hand', left: 'Left hand', all: 'Both hands' }[m[1]] || z;
+  return m[2] ? `${base} ${m[2]}` : base;
+}
+function scZones(s) {
+  const out = SC_ALLZ.map(([z, l], i) => [z, l, i]);
+  let i = SC_ALLZ.length;
+  for (const z of Object.keys(s.parts || {})) {
+    if (SC_ALLZ.some(x => x[0] === z)) continue;
+    while ((mid.ch + i) % 16 === 9) i++;
+    out.push([z, scZoneLabel(z), i++]);
+  }
+  return out.filter(x => x[2] < 16);
+}
+function scAllOff(except) { for (let c = 0; c < 16; c++) if (!except || !except.has(c)) relayOut([0xB0 | c, 123, 0]); }
 // Starter scenes. `key` is stable: a device that already has scenes gets any starter whose key it hasn't
 // been offered yet, once (see scLoad), so new starters reach existing devices and deleted ones stay deleted.
 // `group` drives the filter chips; `tip` is a playing note shown on the card while the scene is on.
@@ -1738,7 +1769,7 @@ const SC_STARTERS = [
     tip: 'Low notes held long, high dissonance on top, bass sliding down chromatically.' },
   { key: 'darkking', group: 'Fantasy', name: 'The Dark King', split: 54, reverb: 100, sound: null, parts: { right: scP(218, -1, 110), left: scP(293, 0, 100) },
     tip: 'Descending 4ths, moving chromatically over one low held note.' },
-  { key: 'boss', group: 'Fantasy', name: 'Boss fight', split: 54, reverb: 50, sound: null, parts: { right: scP(110, 0, 105), left: scP(99, -1, 100) },
+  { key: 'boss', group: 'Fantasy', name: 'Boss fight', split: 54, reverb: 50, sound: null, parts: { right: scP(110, 0, 105), left: scP(99, -1, 45) },
     tip: 'Parallel 4ths, racing repeated bass, shifting up and down chromatically.' },
   { key: 'pixie', group: 'Fantasy', name: 'Pixie magic', split: 54, reverb: 110, sound: null, parts: { right: scP(236, 0, 100), left: scP(125, 0, 95) },
     tip: 'Whole-tone arpeggios: C D E F# G# A# C.' },
@@ -1754,7 +1785,7 @@ const SC_STARTERS = [
     tip: 'Seinfeld stings: right hand 143 Funky Brass.' },
   { key: 'slapstick', group: 'Comedy & fun', name: 'Slapstick', split: 54, reverb: 30, sound: null, parts: { right: scP(172, 0, 105), left: scP(156, 0, 100) },
     tip: 'Bumbling oom-pah.' },
-  { key: 'videogame', group: 'Comedy & fun', name: 'Video game', split: 54, reverb: 20, sound: null, parts: { right: scP(197, 0, 100), left: scP(513, 0, 100) },
+  { key: 'videogame', group: 'Comedy & fun', name: 'Video game', split: 54, reverb: 20, sound: null, parts: { right: scP(197, 0, 100), left: scP(513, 0, 65) },
     tip: 'Tetris-style tunes.' },
   { key: 'romcom', group: 'Romance & drama', name: 'Rom-com', split: 54, reverb: 70, sound: null, parts: { right: scP(283, 0, 100), left: scP(13, 0, 95) },
     tip: 'Am–F–C–G (vi–IV–I–V).' },
@@ -1784,10 +1815,10 @@ const sc = { list: [], loaded: false, active: null, routes: new Map(), draft: nu
 const scId = () => 'sc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 function scParts(s) {
   const out = [];
-  SC_ALLZ.forEach(([zone], i) => {
+  for (const [zone, , i] of scZones(s)) {
     const p = s.parts[zone];
     if (p && p.voice) out.push({ zone, ...p, ch: (mid.ch + i) % 16 });
-  });
+  }
   return out;
 }
 // The scene that is playing now: a saved scene, or the live mix built from the Voices list.
@@ -1831,6 +1862,20 @@ async function scLoad() {
     try { store.setMeta('kbScenesNoSound', true); } catch {}
     kbSet('kb-scenes-nosound', '1');
   }
+  // One-time fix (26 Oct 2026): the synth basses were far too loud in two starters. Lower them in scenes
+  // already saved on this device, but only where the volume is still as first shipped (James's own changes stay).
+  let volFix = null;
+  try { volFix = await store.getMeta('kbScenesVol1'); } catch {}
+  if (!volFix && kbGet('kb-scenes-vol1') !== '1') {
+    const FIX = [{ key: 'boss', name: 'Boss fight', voice: 99, to: 45 }, { key: 'videogame', name: 'Video game', voice: 513, to: 65 }];
+    for (const x of list) {
+      const f = FIX.find(f => (x.key && x.key === f.key) || x.name === f.name);
+      const p = f && x.parts && x.parts.left;
+      if (p && p.voice === f.voice && (p.vol ?? 100) === 100) p.vol = f.to;
+    }
+    try { store.setMeta('kbScenesVol1', true); } catch {}
+    kbSet('kb-scenes-vol1', '1');
+  }
   sc.list = list; sc.loaded = true;
   scSave();
   try { store.setMeta('kbScenesSeen', seen); } catch {}
@@ -1860,7 +1905,7 @@ function scApply(s) {
   if (!mid.out) { toast('Link the keyboard first: tap Connect at the top of this panel.'); return; }
   if (!kb.data) return;
   if (!mid.thru) midiThru(true); // scenes need the keys to come through the app
-  for (let i = 0; i < SC_ALLZ.length; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); // all notes off on the scene channels
+  scAllOff(); // all notes off on every channel
   for (const p of scParts(s)) scSendPart(p, s.reverb);
   // Board sound: fade out the one the previous scene started, start this scene's.
   if (sc.startedSound && sc.startedSound !== s.sound && playing.has(sc.startedSound)) fadeSound(sc.startedSound);
@@ -1885,14 +1930,15 @@ function scSetMode(mode) {
 }
 function scSummary(s) {
   const lines = [];
-  for (const [zone, label] of SC_ALLZ) {
+  for (const [zone, label] of scZones(s)) {
     const p = s.parts[zone]; if (!p || !p.voice) continue;
     const v = scVoice(p.voice);
     const extra = (p.oct ? ` (${p.oct > 0 ? '+' : '−'}${Math.abs(p.oct)} oct)` : '');
-    const rng = zone === 'all' && (p.range === 'right' || p.range === 'left') ? ` on the ${p.range} hand only` : '';
+    const rng = zone.startsWith('all') && (p.range === 'right' || p.range === 'left') ? ` on the ${p.range} hand only` : '';
     lines.push(h('li', null, (rng ? 'Layer' : label.replace(' (layer)', '')) + ': ', h('b', null, `${p.voice} ${v ? v.name : ''}`), rng + extra));
   }
-  if (((s.parts.left?.voice || s.parts.left2?.voice) && (s.parts.right?.voice || s.parts.right2?.voice)) || ['right', 'left'].includes(s.parts.all?.range)) lines.push(h('li', null, 'Split at ', h('b', null, noteName(s.split))));
+  const zs = Object.keys(s.parts).filter(z => s.parts[z]?.voice);
+  if ((zs.some(z => z.startsWith('left')) && zs.some(z => z.startsWith('right'))) || zs.some(z => z.startsWith('all') && ['right', 'left'].includes(s.parts[z].range))) lines.push(h('li', null, 'Split at ', h('b', null, noteName(s.split))));
   const snd = scSoundName(s.sound);
   if (snd) lines.push(h('li', null, 'Board sound: ', h('b', null, snd)));
   return lines;
@@ -2037,48 +2083,85 @@ function scPicked(n) {
 }
 /* ---- live mix: L / R / Both on each voice row. Up to two voices per hand; tapping the name replaces everything ---- */
 // sc.live.L / sc.live.R hold the voice numbers on each hand (oldest first); liveParts() turns them into scene parts.
-function kbIsOn(n) {
-  if (sc.active === 'live' && sc.live) return sc.live.L.includes(n) || sc.live.R.includes(n);
-  return !sc.active && kb.current === n;
+// Which hands voice n is on right now: in the live mix, in the scene that's playing, or as the single voice.
+function kbHands(n) {
+  const L = sc.active === 'live' && sc.live;
+  if (L) return { l: L.L.includes(n), r: L.R.includes(n) };
+  const cur = sc.active && scCur();
+  if (cur) {
+    let l = false, r = false;
+    for (const [z, p] of Object.entries(cur.parts || {})) {
+      if (!p || p.voice !== n) continue;
+      if (z.startsWith('right')) r = true;
+      else if (z.startsWith('left')) l = true;
+      else { if (p.range !== 'left') r = true; if (p.range !== 'right') l = true; }
+    }
+    return { l, r };
+  }
+  return { l: kb.current === n, r: kb.current === n };
+}
+function kbIsOn(n) { const x = kbHands(n); return x.l || x.r; }
+// Voices on the keys now, in the order they were chosen.
+function kbOnKeys() {
+  if (sc.active === 'live' && sc.live) return sc.live.order.slice();
+  const cur = sc.active && scCur();
+  if (cur) return [...new Set(Object.values(cur.parts || {}).map(p => p && p.voice).filter(Boolean))];
+  return kb.current ? [kb.current] : [];
+}
+function kbPins() {
+  const box = $('#kb-pins');
+  const ns = kb.data && mid.out && kb.mode === 'voices' && sc.pick == null ? kbOnKeys().filter(n => scVoice(n)) : [];
+  box.hidden = !ns.length;
+  box.replaceChildren(...ns.map(n => kbVoiceRow(scVoice(n), [])));
 }
 function liveMark() {
-  const L = sc.active === 'live' && sc.live;
-  for (const li of $$('#kb-list .kb-item')) {
-    const n = Number(li.dataset.n);
-    li.classList.toggle('on', kbIsOn(n));
-    const one = !sc.active && kb.current === n; // a single voice on the whole keyboard shows as Both
-    const l = one || (!!L && L.L.includes(n)), r = one || (!!L && L.R.includes(n));
+  kbPins();
+  for (const li of $$('#kb-pins .kb-item, #kb-list .kb-item')) {
+    const { l, r } = kbHands(Number(li.dataset.n));
+    li.classList.toggle('on', l || r);
     for (const b of li.querySelectorAll('.kb-hand'))
       b.setAttribute('aria-pressed', String(b.dataset.hand === 'Both' ? l && r : b.dataset.hand === 'L' ? l && !r : r && !l));
   }
 }
+// Turn the hands into scene parts: a voice on both hands is one part over the whole keyboard (all, all2…),
+// the others right, right2… / left, left2…. Octave and volume carried over from a scene are kept.
 function liveParts(L) {
-  const old = L.parts || {}, parts = {};
-  const keep = (z, n) => { if (!n) return; const o = Object.values(old).find(p => p && p.voice === n);
-    parts[z] = { voice: n, oct: o ? o.oct || 0 : 0, vol: o ? o.vol ?? 100 : 100 }; };
-  keep('right', L.R[0]); keep('right2', L.R[1]); keep('left', L.L[0]); keep('left2', L.L[1]);
+  const old = L.parts || {}, parts = {}, cnt = { right: 0, left: 0, all: 0 };
+  for (const n of L.order) {
+    const l = L.L.includes(n), r = L.R.includes(n);
+    if (!l && !r) continue;
+    const base = l && r ? 'all' : r ? 'right' : 'left';
+    const z = base + (cnt[base]++ ? cnt[base] : '');
+    const o = Object.values(old).find(p => p && p.voice === n);
+    parts[z] = { voice: n, oct: o ? o.oct || 0 : 0, vol: o ? o.vol ?? 100 : 100 };
+  }
   L.parts = parts;
 }
 function liveHand(hand, n) {
   const v = scVoice(n); if (!v || v.msb == null || !mid.out) return;
   if (sc.active !== 'live' || !sc.live) {
     // Start from what is on the keys now: the scene that's playing, else the single voice chosen here.
-    const cur = scCur(), P = cur ? cur.parts || {} : {};
-    const pick = zs => [...new Set(zs.map(z => P[z]?.voice).filter(Boolean))].slice(0, 2);
-    sc.live = cur
-      ? { id: 'live', from: cur.name, split: cur.split ?? 54, reverb: cur.reverb ?? 64, sound: cur.sound || null, parts: JSON.parse(JSON.stringify(P)),
-          L: pick(['left', 'left2', 'all']), R: pick(['right', 'right2', 'all']) }
-      : { id: 'live', from: null, split: sc.live?.split ?? 54, reverb: 64, sound: null, parts: {},
-          L: kb.current ? [kb.current] : [], R: kb.current ? [kb.current] : [] };
+    const cur = scCur(), order = kbOnKeys();
+    sc.live = { id: 'live', from: cur ? cur.name : null, split: cur ? cur.split ?? 54 : sc.live?.split ?? 54, reverb: cur ? cur.reverb ?? 64 : 64,
+      sound: cur ? cur.sound || null : null, parts: cur ? JSON.parse(JSON.stringify(cur.parts || {})) : {},
+      order, L: order.filter(x => kbHands(x).l), R: order.filter(x => kbHands(x).r) };
   }
-  const L = sc.live;
-  const add = a => { if (!a.includes(n)) { a.push(n); if (a.length > 2) a.shift(); } };
+  const L = sc.live, before = { L: L.L.slice(), R: L.R.slice(), order: L.order.slice(), parts: L.parts };
+  const add = a => { if (!a.includes(n)) a.push(n); };
   const drop = a => { const i = a.indexOf(n); if (i >= 0) a.splice(i, 1); };
   if (hand === 'L') { if (L.L.includes(n) && !L.R.includes(n)) drop(L.L); else { add(L.L); drop(L.R); } }
   else if (hand === 'R') { if (L.R.includes(n) && !L.L.includes(n)) drop(L.R); else { add(L.R); drop(L.L); } }
   else if (L.L.includes(n) && L.R.includes(n)) { drop(L.L); drop(L.R); }
   else { add(L.L); add(L.R); }
-  if (!L.L.length && !L.R.length) { liveOff(); scLeave(); toast('Nothing left on the keys. Tap a voice to start again.'); return; }
+  if (L.L.includes(n) || L.R.includes(n)) { if (!L.order.includes(n)) L.order.push(n); }
+  else L.order = L.order.filter(x => x !== n);
+  if (!L.order.length) { liveOff(); scLeave(); toast('Nothing left on the keys. Tap a voice to start again.'); return; }
+  liveParts(L);
+  if (scParts(L).length < Object.keys(L.parts).length) {
+    Object.assign(L, before);
+    toast('That’s every channel the keyboard has. Take a voice off first.');
+    return;
+  }
   liveSend();
 }
 // Send every part to its channel; channels left empty get All Notes Off. No All Notes Off on the others,
@@ -2087,14 +2170,14 @@ function liveSend() {
   const L = sc.live;
   liveParts(L);
   if (!mid.thru) { const y = $('#kb-list').scrollTop; midiThru(true); $('#kb-list').scrollTop = y; } // keys must come through the app
-  const parts = scParts(L), used = new Set(parts.map(p => p.ch));
-  for (let i = 0; i < SC_ALLZ.length; i++) { const c = (mid.ch + i) % 16; if (!used.has(c)) relayOut([0xB0 | c, 123, 0]); }
+  const parts = scParts(L);
+  scAllOff(new Set(parts.map(p => p.ch)));
   for (const p of parts) scSendPart(p, L.reverb);
   sc.active = 'live'; kb.current = 0;
   if (kb.mode === 'scenes') scRender();
   liveUi(); liveMark();
 }
-function liveOff() { if (mid.out) for (let i = 0; i < SC_ALLZ.length; i++) relayOut([0xB0 | ((mid.ch + i) % 16), 123, 0]); }
+function liveOff() { if (mid.out) scAllOff(); }
 function liveSave() {
   const L = sc.live; if (!L) return;
   liveParts(L);
