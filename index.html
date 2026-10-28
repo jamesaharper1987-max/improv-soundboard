@@ -1734,7 +1734,7 @@ function scAllOff(except) { for (let c = 0; c < 16; c++) if (!except || !except.
 // Starter scenes. `key` is stable: a device that already has scenes gets any starter whose key it hasn't
 // been offered yet, once (see scLoad), so new starters reach existing devices and deleted ones stay deleted.
 // `group` drives the filter chips; `tip` is a playing note shown on the card while the scene is on.
-const SC_GROUPS = ['Mystery & crime', 'Horror', 'Fantasy', 'Sci-fi', 'Comedy & fun', 'Romance & drama', 'Places & world'];
+const SC_GROUPS = ['Mystery & crime', 'Horror', 'Ghost story', 'Fantasy', 'Sci-fi', 'Comedy & fun', 'Romance & drama', 'Places & world'];
 const scP = (voice, oct = 0, vol = 100) => ({ voice, oct, vol });
 const SC_FIRST = ['forest', 'haunted', 'underwater', 'space', 'saloon', 'cathedral', 'circus', 'paris', 'battle', 'rainy'];
 const SC_STARTERS = [
@@ -1810,6 +1810,17 @@ const SC_STARTERS = [
   { key: 'bollywood', group: 'Places & world', name: 'Bollywood', split: 54, reverb: 50, sound: null, parts: { right: scP(262, 0, 105), left: scP(269, 0, 100) } },
   { key: 'showdown', group: 'Places & world', name: 'Western showdown', split: 54, reverb: 90, sound: null, parts: { right: scP(60, 0, 105), left: scP(124, -1, 95) },
     tip: 'Start in silence. Bare fifths (C–G, F–C), no third. 791 Horse for riding off.' },
+  // Added 27 Oct 2026: a four-step set for a 20th-century play whose characters turn out to be ghosts.
+  // Voices chosen to differ from every other starter. Unease and Aftermath put a sound effect on the
+  // bottom keys (split 48, like Flashback) and keep their layer on the right hand only.
+  { key: 'ghost1', group: 'Ghost story', name: 'Ghost 1 · Parlour', split: 54, reverb: 45, sound: null, parts: { right: scP(120, 0, 100), left: scP(365, 0, 95) },
+    tip: 'Palm Court salon: a waltz or foxtrot. Pick one tune here and keep it for the reveal. 776 Telephone Ring 1 for an old phone.' },
+  { key: 'ghost2', group: 'Ghost story', name: "Ghost 2 · Something's off", split: 48, reverb: 95, sound: null, parts: { right: scP(290, 1, 95), left: scP(815, 0, 110), all: { ...scP(676, 0, 55), range: 'right' } },
+    tip: 'The parlour tune, slower, with one note wrong. Heartbeat on the bottom keys; let a chord hang after a line.' },
+  { key: 'ghost3', group: 'Ghost story', name: 'Ghost 3 · The reveal', split: 54, reverb: 120, sound: null, parts: { right: scP(224, 0, 105), left: scP(292, -1, 95) },
+    tip: 'Stop all on the board first, a beat of silence, then the parlour tune slowly on the voices, a low bell on each downbeat.' },
+  { key: 'ghost4', group: 'Ghost story', name: 'Ghost 4 · Aftermath', split: 48, reverb: 115, sound: null, parts: { right: scP(710, 0, 95), left: scP(786, 0, 95), all: { ...scP(222, 0, 60), range: 'right' } },
+    tip: 'Sparse high notes, long gaps. Wind through the empty house on the bottom keys.' },
 ];
 const sc = { list: [], loaded: false, active: null, routes: new Map(), draft: null, pick: null, learn: false, startedSound: null, live: null };
 const scId = () => 'sc-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
